@@ -95,6 +95,52 @@ The application integrates with Google's Gemini 1.5 Pro model to generate high-q
    npm start
    ```
 
+## 📊 Database Schema
+
+### User Schema
+
+```typescript
+{
+  username: String,           // Required: User's display name
+  email: String,              // Required: User's email address
+  password: String,           // Required: Hashed password
+  trialPeriod: Number,        // Default: 3 days
+  trialActive: Boolean,       // Default: true
+  trialExpires: Date,         // When the trial period ends
+  subscription: String,       // Enum: "Free", "Basic", "Premium", "Trial"
+  apiRequestCount: Number,    // Total lifetime content generations
+  monthlyRequestCount: Number, // Remaining credits for current cycle
+  nextBillingDate: Date,      // When the next billing occurs
+  payments: [ObjectId],       // References to Payment documents
+  history: [ObjectId]         // References to ContentHistory documents
+}
+```
+
+### Content History Schema
+
+```typescript
+{
+  content: String,           // The generated content
+  user: ObjectId,            // Reference to User document
+  createdAt: Date,           // When the content was generated
+  updatedAt: Date            // When the content was last updated
+}
+```
+
+### Payment Schema
+
+```typescript
+{
+  amount: Number,            // Payment amount
+  status: String,            // Payment status (completed, failed, etc.)
+  subscriptionPlan: String,  // Which plan was purchased
+  user: ObjectId,            // Reference to User document
+  paymentIntentId: String,   // Stripe payment intent ID
+  createdAt: Date,           // When the payment was initiated
+  updatedAt: Date            // When the payment status was last updated
+}
+```
+
 ## 📦 Project Structure
 
 ```
@@ -156,28 +202,202 @@ The credit-based subscription system includes:
 ### Authentication
 
 - `POST /api/auth/register` - User registration
+
+  - Parameters: `{ username, email, password }`
+  - Returns: `{ status, message, user }`
+
 - `POST /api/auth/login` - User login
+
+  - Parameters: `{ email, password }`
+  - Returns: `{ status, user }` + Sets HTTP-only cookie with JWT
+
 - `POST /api/auth/logout` - User logout
+
+  - Parameters: None
+  - Returns: `{ message }` + Clears HTTP-only cookie
+
 - `GET /api/auth/check` - Verify authentication
+  - Parameters: None (JWT from cookie)
+  - Returns: `{ isAuthenticated }`
 
 ### User Management
 
 - `GET /api/users/profile` - Get user profile
+
+  - Parameters: None (JWT from cookie)
+  - Returns: `{ status, user }` with populated payment history
+
 - `PUT /api/users/profile` - Update user profile
+  - Parameters: `{ username, email, ... }`
+  - Returns: `{ status, user }`
 
 ### Content Generation
 
 - `POST /api/openai/generate` - Generate AI content
+
+  - Parameters: `{ prompt }`
+  - Returns: `{ status, message, content, model }`
+  - Side effect: Creates history record & decrements monthly credits
+
 - `GET /api/history` - Get content history
+
+  - Parameters: None (JWT from cookie)
+  - Returns: `{ history: [] }` with all user's history items
+
 - `PUT /api/history/:id` - Update content history item
+
+  - Parameters: `{ content }`
+  - Returns: `{ status, history }` with updated content
+
 - `DELETE /api/history/:id` - Delete content history item
+  - Parameters: None (just ID in URL)
+  - Returns: `{ status, message }`
 
 ### Payment Processing
 
 - `POST /api/stripe/checkout` - Create payment intent
+
+  - Parameters: `{ amount, subscriptionPlan }`
+  - Returns: `{ clientSecret }` for Stripe.js
+
 - `POST /api/stripe/verify-payment/:id` - Verify payment
+
+  - Parameters: None (ID in URL)
+  - Returns: `{ verified, message }`
+
 - `POST /api/stripe/free-plan` - Activate free plan
+
+  - Parameters: None (JWT from cookie)
+  - Returns: `{ status, message }`
+
 - `GET /api/stripe/fix-subscription` - Fix subscription issues
+  - Parameters: None (JWT from cookie)
+  - Returns: `{ status, message }`
+
+## 💻 Running and Testing
+
+### Development Environment
+
+1. Start both server and client as described in Installation section
+2. The application will be available at:
+   - Frontend: `http://localhost:3000`
+   - Backend API: `http://localhost:4000`
+
+### Testing the Application
+
+1. **Authentication Testing**:
+
+   - Register a new account via the signup form
+   - Login with your credentials
+   - Verify that you can access protected routes (Dashboard, Content Generation)
+
+2. **Content Generation Testing**:
+
+   - Navigate to the Generate Content page
+   - Fill in the form with topic, tone, and category
+   - Submit and verify that content is generated and credits are deducted
+
+3. **Voice Input Testing**:
+
+   - Navigate to the Voice-to-Content page
+   - Click the microphone button and speak (requires Chrome or supported browser)
+   - Verify that your speech is transcribed and can be edited
+   - Generate content and confirm that it's based on your transcript
+
+4. **Payment Testing**:
+
+   - Navigate to Plans page and select a subscription
+   - Use Stripe test card `4242 4242 4242 4242` with any future date and any CVC
+   - Complete payment flow and verify that subscription is activated
+
+5. **Redux State Testing**:
+   - Use Redux DevTools browser extension to monitor state changes
+   - Verify that user credits update correctly after content generation
+   - Check that authentication state persists across page refreshes
+
+## 🛠️ Technical Documentation
+
+### Redux Slices (More Slices In Code)
+
+#### userSlice.js
+
+- `fetchUserProfile()`: Async thunk to retrieve user data from the server
+
+  - Parameters: None
+  - Returns: Promise resolving to user data
+
+- `updateCreditUsage()`: Action to update credit counters in Redux state
+
+  - Parameters: None
+  - Side effect: Increments total used credits, decrements remaining credits
+
+- `selectCurrentCycleUsedCredits(state)`: Selector to calculate current billing cycle usage
+
+  - Parameters: Redux state
+  - Returns: Number of credits used in current billing cycle
+
+- `selectRemainingCredits(state)`: Selector to get remaining credits
+  - Parameters: Redux state
+  - Returns: Number of remaining credits for current user
+
+#### contentSlice.js
+
+- `generateContent(promptData)`: Async thunk to generate content via AI
+  - Parameters: `promptData` (string with generation prompt)
+  - Returns: Promise resolving to generated content
+  - Side effect: Dispatches `updateCreditUsage()`
+
+#### voiceSlice.js
+
+- `appendTranscript(text)`: Action to add new transcribed text to existing transcript
+
+  - Parameters: `text` (string to append)
+  - Returns: Updated Redux state
+
+- `setIsListening(status)`: Action to toggle speech recognition status
+  - Parameters: `status` (boolean)
+  - Returns: Updated Redux state
+
+### Components
+
+#### VoiceContentGenerator
+
+- Uses Web Speech API to capture and transcribe voice input
+- Manages recording state, transcription, and speech recognition errors
+- Allows editing transcribed text before generating content
+
+#### BlogPostAIAssistant
+
+- Implements form-based content generation with customizable parameters
+- Uses Formik for form validation and submission
+- Displays credit usage information and generated content
+
+## 🧪 Third-Party Libraries
+
+### Frontend (Client)
+
+- **React**: UI library
+- **Redux Toolkit**: State management
+- **Redux Persist**: State persistence across sessions
+- **Axios**: HTTP client
+- **Formik & Yup**: Form handling and validation
+- **Stripe.js & React-Stripe-js**: Payment processing
+- **Framer Motion**: Animations
+- **TailwindCSS**: Utility-first CSS framework
+- **React Router**: Client-side routing
+- **React Query**: Data fetching and caching
+- **React Icons**: Icon components
+
+### Backend (Server)
+
+- **NestJS**: Backend framework
+- **Mongoose**: MongoDB ODM
+- **JWT**: Authentication
+- **Bcrypt**: Password hashing
+- **Stripe API**: Payment processing
+- **Google Generative AI SDK**: AI content generation
+- **Class Validator**: DTO validation
+- **Passport.js**: Authentication strategies
 
 ## 🙏 Acknowledgements
 
@@ -194,7 +414,7 @@ This project is available under the MIT License - see the [LICENSE](LICENSE) fil
 ---
 
 <div align="center">
-  <p>Created With ❤️ by Joe Wrdd</p>
+  <p>Created With ❤️ By Joe Wrdd</p>
 </div>
 
 ```
