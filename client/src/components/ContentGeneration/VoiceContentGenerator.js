@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import StatusMessage from "../Alert/StatusMessage";
 
-// Redux selectors and actions
 import {
   selectTranscript,
   selectIsListening,
