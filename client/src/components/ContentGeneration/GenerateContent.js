@@ -1,35 +1,37 @@
-import React, { useState } from "react";
+import React from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Link } from "react-router-dom";
-import { profileAPI } from "../../apis/usersAPI";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useDispatch, useSelector } from "react-redux";
 import StatusMessage from "../Alert/StatusMessage";
-import { generateContentAPI } from "../../apis/chatAiAPI.js";
+import {
+  generateContent,
+  selectContent,
+  selectContentLoading,
+  selectContentStatus,
+  selectContentError,
+} from "../../redux/slices/contentSlice";
+import {
+  selectUser,
+  selectUserLoading,
+  selectUserError,
+  selectCreditAllocation,
+  selectRemainingCredits,
+} from "../../redux/slices/userSlice";
 
 const BlogPostAIAssistant = () => {
-  const [generatedContent, setGeneratedContent] = useState("");
+  const dispatch = useDispatch();
 
-  //----- Get User Profile -----
-  const { isLoading, isError, data, error } = useQuery({
-    queryFn: profileAPI,
-    queryKey: ["profile"],
-  });
+  const user = useSelector(selectUser);
+  const userLoading = useSelector(selectUserLoading);
+  const userError = useSelector(selectUserError);
+  const creditAllocation = useSelector(selectCreditAllocation);
+  const remainingCredits = useSelector(selectRemainingCredits);
 
-  //----- Mutation -----
-  const mutation = useMutation({
-    mutationFn: generateContentAPI,
-    onSuccess: (data) => {
-      setGeneratedContent(data?.message || "No Content Generated");
-    },
-    onError: (error) => {
-      setGeneratedContent(
-        `Error: ${
-          error?.response?.data?.message || "Failed To Generate Content"
-        }`
-      );
-    },
-  });
+  const generatedContent = useSelector(selectContent);
+  const contentLoading = useSelector(selectContentLoading);
+  const contentStatus = useSelector(selectContentStatus);
+  const contentError = useSelector(selectContentError);
 
   //----- Formik Setup Handling -----
   const formik = useFormik({
@@ -44,25 +46,26 @@ const BlogPostAIAssistant = () => {
       category: Yup.string().required("Selecting a category is required"),
     }),
     onSubmit: (values) => {
-      mutation.mutate(`Generate a blog post:
+      dispatch(
+        generateContent(`Generate a blog post:
         Topic: ${values.prompt}
         Tone: ${values.tone}
-        Category: ${values.category}`);
+        Category: ${values.category}`)
+      );
     },
   });
-  console.log(mutation);
 
   //----- Loading States -----
-  if (isLoading) {
+  if (userLoading) {
     return <StatusMessage type="loading" message="Loading please wait..." />;
   }
 
   //----- Error Handle -----
-  if (isError) {
+  if (userError) {
     return (
       <StatusMessage
         type="error"
-        message={error?.response?.data?.message || "An error occurred"}
+        message={userError?.response?.data?.message || "An error occurred"}
       />
     );
   }
@@ -100,7 +103,7 @@ const BlogPostAIAssistant = () => {
               <span className="text-sm font-medium text-gray-700">
                 Subscription Type:{" "}
                 <span className="text-purple-600 font-semibold">
-                  {data?.user?.subscription || "Free"}
+                  {user?.subscription || "Free"}
                 </span>
               </span>
             </div>
@@ -119,14 +122,11 @@ const BlogPostAIAssistant = () => {
                 />
               </svg>
               <span className="text-sm font-medium text-gray-700">
-                Credit Requests:{" "}
+                Credits Remaining:{" "}
                 <span className="text-blue-500 font-semibold">
-                  {data?.user?.apiRequestCount || 0}
+                  {remainingCredits}
                 </span>{" "}
-                /{" "}
-                <span className="text-gray-600">
-                  {data?.user?.monthlyRequestCount || 0}
-                </span>
+                / <span className="text-gray-600">{creditAllocation}</span>
               </span>
             </div>
           </div>
@@ -319,7 +319,7 @@ const BlogPostAIAssistant = () => {
           </div>
 
           {/* Status Messages */}
-          {mutation?.isPending && (
+          {contentLoading && (
             <div className="mt-4 flex items-center justify-center p-4 bg-purple-50 rounded-lg border border-purple-100">
               <svg
                 className="animate-spin h-5 w-5 mr-3 text-purple-600"
@@ -346,7 +346,7 @@ const BlogPostAIAssistant = () => {
             </div>
           )}
 
-          {mutation?.isSuccess && (
+          {contentStatus === "succeeded" && (
             <div className="mt-4 flex items-center justify-center p-4 bg-green-50 rounded-lg border border-green-100">
               <svg
                 className="w-5 h-5 mr-3 text-green-500"
@@ -367,7 +367,7 @@ const BlogPostAIAssistant = () => {
             </div>
           )}
 
-          {mutation?.isError && (
+          {contentStatus === "failed" && (
             <div className="mt-4 flex items-center justify-center p-4 bg-red-50 rounded-lg border border-red-100">
               <svg
                 className="w-5 h-5 mr-3 text-red-500"
@@ -383,14 +383,13 @@ const BlogPostAIAssistant = () => {
                 />
               </svg>
               <span className="text-red-700 font-medium">
-                {mutation?.error?.response?.data?.message ||
-                  "Failed to generate content"}
+                {contentError || "Failed to generate content"}
               </span>
             </div>
           )}
         </form>
         {/* Generated Content Display */}
-        {(generatedContent || mutation.isLoading) && (
+        {(generatedContent || contentLoading) && (
           <div className="mt-8 bg-gradient-to-br from-[#301934]/5 to-[#5a3470]/5 p-6 rounded-xl border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
               <svg
@@ -409,7 +408,7 @@ const BlogPostAIAssistant = () => {
               Generated Content
             </h3>
             <div className="bg-white p-4 rounded-lg shadow-inner">
-              {mutation.isLoading ? (
+              {contentLoading ? (
                 <div className="flex items-center justify-center text-gray-500">
                   <svg
                     className="animate-spin h-5 w-5 mr-3"

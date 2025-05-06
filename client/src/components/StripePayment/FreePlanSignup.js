@@ -24,7 +24,6 @@ const FreePlanSignup = () => {
   const handleConfirmationPayment = () => {
     mutation.mutate();
   };
-  console.log(mutation);
 
   return (
     <div className="min-h-screen bg-gray-900 flex justify-center items-center p-6">

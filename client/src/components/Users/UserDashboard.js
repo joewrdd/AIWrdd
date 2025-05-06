@@ -1,41 +1,255 @@
-import { Link } from "react-router-dom";
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { profileAPI } from "../../apis/usersAPI";
+import { Link, useLocation } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import StatusMessage from "../Alert/StatusMessage";
+import axios from "axios";
+import config from "../../config";
+import {
+  fetchUserProfile,
+  selectUser,
+  selectUserLoading,
+  selectUserError,
+  selectCreditAllocation,
+  selectUsedCredits,
+  selectRemainingCredits,
+  selectCurrentCycleUsedCredits,
+} from "../../redux/slices/userSlice";
+import {
+  setIsFixing,
+  setFixStatus,
+  setLocalError,
+  clearLocalError,
+  hideStatusMessage,
+  setRefreshCompleted,
+  selectIsFixing,
+  selectFixStatus,
+  selectLocalError,
+  selectStatusMessageVisible,
+  selectRefreshCompleted,
+} from "../../redux/slices/processSlice";
+
+const STATUS_MESSAGE_TIMEOUT = 4000;
 
 const Dashboard = () => {
-  const { isLoading, isError, data, error } = useQuery({
-    queryFn: profileAPI,
-    queryKey: ["profile"],
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-    cacheTime: 0,
-  });
+  const location = useLocation();
+  const dispatch = useDispatch();
 
-  //----- Loading If User Exists -----
+  const user = useSelector(selectUser);
+  const isLoading = useSelector(selectUserLoading);
+  const error = useSelector(selectUserError);
+  const creditAllocation = useSelector(selectCreditAllocation);
+  const totalUsedCredits = useSelector(selectUsedCredits);
+  const currentCycleUsedCredits = useSelector(selectCurrentCycleUsedCredits);
+  const remainingCredits = useSelector(selectRemainingCredits);
+
+  const isFixing = useSelector(selectIsFixing);
+  const fixStatus = useSelector(selectFixStatus);
+  const localError = useSelector(selectLocalError);
+  const statusMessageVisible = useSelector(selectStatusMessageVisible);
+  const refreshCompleted = useSelector(selectRefreshCompleted);
+
+  const searchParams = new URLSearchParams(location.search);
+  const fromPayment = searchParams.get("payment") === "true";
+  const forceRefresh = searchParams.get("forcerefresh") === "true";
+
+  useEffect(() => {
+    let timeoutId;
+    if (fixStatus && !isFixing && statusMessageVisible) {
+      timeoutId = setTimeout(() => {
+        dispatch(hideStatusMessage());
+      }, STATUS_MESSAGE_TIMEOUT);
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [fixStatus, isFixing, statusMessageVisible, dispatch]);
+
+  useEffect(() => {
+    dispatch(fetchUserProfile());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if ((fromPayment || forceRefresh) && !refreshCompleted && user) {
+      dispatch(setRefreshCompleted(true));
+
+      const timeoutId = setTimeout(() => {
+        dispatch(fetchUserProfile());
+      }, 3000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [dispatch, fromPayment, forceRefresh, refreshCompleted, user]);
+
+  useEffect(() => {
+    const autoFixSubscription = async (userData) => {
+      if (
+        ((userData?.subscription === "Premium" ||
+          userData?.subscription === "Basic") &&
+          (!userData.payments || userData.payments.length === 0)) ||
+        fromPayment
+      ) {
+        try {
+          dispatch(setIsFixing(true));
+          dispatch(clearLocalError());
+          const response = await axios.get(
+            `${config.API_URL}/api/stripe/fix-subscription`,
+            { withCredentials: true }
+          );
+          dispatch(
+            setFixStatus({
+              success: true,
+              message:
+                response.data.message || "Subscription updated successfully",
+            })
+          );
+          setTimeout(() => {
+            dispatch(fetchUserProfile());
+          }, 1000);
+        } catch (error) {
+          console.error("Error fixing subscription:", error);
+          dispatch(setLocalError(error.message || "An error occurred"));
+          dispatch(
+            setFixStatus({
+              success: false,
+              message:
+                error.response?.data?.message ||
+                "Could not update subscription automatically.",
+            })
+          );
+        } finally {
+          dispatch(setIsFixing(false));
+        }
+      }
+    };
+
+    if (user && !isFixing && !fixStatus) {
+      autoFixSubscription(user).catch((err) => {
+        console.error("Error in autoFixSubscription:", err);
+        dispatch(setLocalError(err.message || "Failed to fix subscription"));
+      });
+    }
+  }, [user, isFixing, fixStatus, dispatch, fromPayment]);
+
   if (isLoading) {
     return <StatusMessage type="loading" message="Loading please wait..." />;
   }
 
-  //----- Check For Error -----
-  if (isError) {
+  if (error || localError) {
     return (
       <StatusMessage
         type="error"
-        message={error?.response?.data?.message || "Error loading profile"}
+        message={localError || error || "Error loading profile"}
       />
     );
   }
-
-  const user = data?.user;
 
   if (!user) {
     return <StatusMessage type="error" message="No user data available" />;
   }
 
+  const justSubscribed = fromPayment && user.subscription !== "Trial";
+  const hasActiveSubscription =
+    user.subscription !== "Trial" && !user.trialActive;
+
+  const payments = user.payments || [];
+  const hasPayments = payments.length > 0;
+
   return (
     <div className="mx-auto p-4 bg-gray-900 w-screen">
+      {justSubscribed && statusMessageVisible && (
+        <div className="mb-6 max-w-3xl mx-auto">
+          <div className="bg-green-900/30 text-green-300 p-4 rounded-lg shadow-md border border-green-800 flex items-center">
+            <svg
+              className="w-6 h-6 mr-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+            <div>
+              <h3 className="text-lg font-medium">Subscription Activated!</h3>
+              <p className="text-sm">
+                Your {user.subscription} plan is now active. Enjoy your enhanced
+                features!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-fix status message */}
+      {isFixing && statusMessageVisible && (
+        <div className="mb-6 max-w-3xl mx-auto">
+          <div className="bg-blue-900/30 text-blue-300 p-4 rounded-lg shadow-md border border-blue-800 flex items-center">
+            <svg
+              className="animate-spin w-6 h-6 mr-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+            <div>
+              <h3 className="text-lg font-medium">Syncing Subscription</h3>
+              <p className="text-sm">We're updating your account details...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fix status message */}
+      {!isFixing && fixStatus && statusMessageVisible && (
+        <div className="mb-6 max-w-3xl mx-auto">
+          <div
+            className={`${
+              fixStatus.success
+                ? "bg-green-900/30 text-green-300 border-green-800"
+                : "bg-yellow-900/30 text-yellow-300 border-yellow-800"
+            } p-4 rounded-lg shadow-md border flex items-center`}
+          >
+            <svg
+              className="w-6 h-6 mr-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d={
+                  fixStatus.success
+                    ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    : "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                }
+              ></path>
+            </svg>
+            <div>
+              <h3 className="text-lg font-medium">
+                {fixStatus.success ? "Subscription Synced" : "Sync Notice"}
+              </h3>
+              <p className="text-sm">{fixStatus.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-center mb-8">
         <div className="bg-gradient-to-r from-[#301934] via-[#432752] to-[#5a3470] rounded-lg p-1">
           <div className="bg-gray-900 rounded-md px-6 py-2">
@@ -121,28 +335,40 @@ const Dashboard = () => {
           </div>
           <div className="space-y-3">
             <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
-              <span className="text-gray-600">Monthly Credit</span>
+              <span className="text-gray-600">Monthly Credit Allocation</span>
               <span className="font-semibold text-gray-800">
-                {user?.monthlyRequestCount}
+                {creditAllocation} Credits
               </span>
             </div>
+
             <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
-              <span className="text-gray-600">Credit Used</span>
+              <span className="text-gray-600">Current Cycle Used</span>
               <span className="font-semibold text-gray-800">
-                {user?.apiRequestCount}
+                {currentCycleUsedCredits} Credits
               </span>
             </div>
+
             <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
-              <span className="text-gray-600">Credit Remaining</span>
+              <span className="text-gray-600">Remaining Credits</span>
               <span className="font-semibold text-gray-800">
-                {user?.monthlyRequestCount - user?.apiRequestCount}
+                {remainingCredits} Credits
               </span>
             </div>
+
+            <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
+              <span className="text-gray-600">
+                Total Credits Used (All Time)
+              </span>
+              <span className="font-semibold text-gray-800">
+                {totalUsedCredits} Credits
+              </span>
+            </div>
+
             <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100 shadow-sm">
               <span className="text-gray-600">Next Billing Date</span>
               <span className="font-semibold text-gray-800">
                 {user?.nextBillingDate
-                  ? user?.nextBillingDate
+                  ? new Date(user?.nextBillingDate).toLocaleDateString()
                   : "No Billing Date"}
               </span>
             </div>
@@ -176,7 +402,15 @@ const Dashboard = () => {
             <div className="p-4 bg-white rounded-lg border border-gray-100 shadow-sm">
               <p className="text-gray-600 mb-4">
                 Current Plan:{" "}
-                <span className="font-semibold text-gray-800">
+                <span
+                  className={`font-semibold ${
+                    user?.subscription === "Premium"
+                      ? "text-purple-700"
+                      : user?.subscription === "Basic"
+                      ? "text-blue-700"
+                      : "text-gray-800"
+                  }`}
+                >
                   {user?.subscription || "No Plan"}
                 </span>
               </p>
@@ -240,9 +474,7 @@ const Dashboard = () => {
               <p className="text-gray-600 mb-2">
                 Trial Status:{" "}
                 <span className="font-semibold text-gray-800">
-                  {user?.payments?.some(
-                    (payment) => payment.status === "Succeeded"
-                  ) ? (
+                  {hasActiveSubscription ? (
                     <span className="text-green-500">
                       Upgraded To {user?.subscription}
                     </span>
@@ -257,20 +489,22 @@ const Dashboard = () => {
                   )}
                 </span>
               </p>
-              {user?.payments?.some(
-                (payment) => payment.status === "Succeeded"
-              ) ? (
+              {hasActiveSubscription ? (
                 <p className="text-gray-600 mb-4">
                   Next Billing Date:{" "}
                   <span className="font-semibold text-gray-800">
-                    {new Date(user?.nextBillingDate).toDateString()}
+                    {user?.nextBillingDate
+                      ? new Date(user?.nextBillingDate).toLocaleDateString()
+                      : "Not Set"}
                   </span>
                 </p>
               ) : (
                 <p className="text-gray-600 mb-4">
                   Trial Expires on:{" "}
                   <span className="font-semibold text-gray-800">
-                    {new Date(user?.trialExpires).toDateString()}
+                    {user?.trialExpires
+                      ? new Date(user?.trialExpires).toLocaleDateString()
+                      : "Not Available"}
                   </span>
                 </p>
               )}
@@ -309,10 +543,9 @@ const Dashboard = () => {
               Payment History
             </h2>
           </div>
-          {user?.payments?.length > 0 ? (
+          {hasPayments ? (
             <ul className="divide-y divide-gray-100">
-              {/* Example History Item */}
-              {user?.payments?.map((payment) => (
+              {payments.map((payment) => (
                 <li
                   key={payment._id}
                   className="py-4 px-4 hover:bg-gray-50 rounded-lg transition duration-150 ease-in-out"
@@ -320,24 +553,31 @@ const Dashboard = () => {
                   <div className="flex flex-col sm:flex-row justify-between">
                     <div className="mb-2 sm:mb-0">
                       <p className="text-sm font-medium text-indigo-600">
-                        {payment?.subscriptionPlan}
+                        {payment?.subscriptionPlan ||
+                          (payment?.amount >= 40
+                            ? "Premium"
+                            : payment?.amount >= 20
+                            ? "Basic"
+                            : "N/A")}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {new Date(payment?.createdAt).toDateString()}
+                        {payment?.createdAt
+                          ? new Date(payment?.createdAt).toLocaleString()
+                          : "N/A"}
                       </p>
                     </div>
                     <div className="flex items-center">
                       <span
                         className={`px-2.5 py-1 text-xs font-semibold ${
-                          payment?.status === "Succeeded"
+                          payment?.status === "completed"
                             ? "text-green-700"
                             : "text-orange-500"
                         }`}
                       >
-                        {payment?.status}
+                        {payment?.status || "N/A"}
                       </span>
-                      <p className="text-sm font-semibold text-gray-700">
-                        ${payment?.amount}
+                      <p className="text-sm font-semibold text-gray-700 ml-2">
+                        ${payment?.amount || "0.00"}
                       </p>
                     </div>
                   </div>
@@ -345,7 +585,17 @@ const Dashboard = () => {
               ))}
             </ul>
           ) : (
-            <h1>No Payment History</h1>
+            <div className="text-center py-8">
+              <p className="text-gray-500">No payment history available</p>
+              {user?.subscription !== "Trial" &&
+                user?.subscription !== "Free" && (
+                  <p className="text-sm text-gray-400 mt-2">
+                    {isFixing
+                      ? "Synchronizing your payment information..."
+                      : "Your subscription is active, but payment information is still syncing."}
+                  </p>
+                )}
+            </div>
           )}
         </div>
       </div>

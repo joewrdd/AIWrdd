@@ -20,9 +20,9 @@ const StatusMessage = ({ type, message }) => {
       break;
     case "loading":
       icon = (
-        <AiOutlineLoading3Quarters className="animate-spin text-blue-500 text-3xl" />
+        <AiOutlineLoading3Quarters className="animate-spin text-purple-500 text-3xl" />
       );
-      colorClass = "bg-blue-100 text-blue-700";
+      colorClass = "bg-purple-100 text-purple-700";
       break;
     default:
       icon = null;

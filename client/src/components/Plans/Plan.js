@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { CheckIcon } from "@heroicons/react/20/solid";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { setSelectedPlan } from "../../redux/slices/paymentSlice";
 
 const tiers = [
   {
@@ -55,11 +57,12 @@ function classNames(...classes) {
 }
 
 export default function Plans() {
-  const [selectedPlan, setSelectedPlan] = useState(null);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const handleSelectedPlan = (plan) => {
-    setSelectedPlan(plan);
-    console.log(selectedPlan);
+    dispatch(setSelectedPlan(plan));
+
     if (plan?.id === "Free") {
       navigate("/free-plan");
     } else {

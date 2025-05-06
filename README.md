@@ -1,164 +1,201 @@
-# WrddAI Content Generator
+# 🤖 WrddAI Content Generator
 
-A powerful AI-driven content generation platform built with the MERN stack (MongoDB, Express.js, React.js, Node.js) that helps users create high-quality, engaging content with an intuitive user interface & a sleek easy payment getaway.
+<div align="center">
 
-## Features
+![WrddAI Banner](client/src/assets/WRDD.png)
 
-🤖 **AI-Powered Content Generation**
+[![React](https://img.shields.io/badge/React-18.0+-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
+[![Redux](https://img.shields.io/badge/Redux-4.0+-764ABC?style=for-the-badge&logo=redux&logoColor=white)](https://redux.js.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-9.0+-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-5.0+-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Stripe](https://img.shields.io/badge/Stripe-API-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com/)
+[![Google AI](https://img.shields.io/badge/Google_AI-Gemini_1.5-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 
-- Advanced AI algorithms for content creation
-- Multiple content types and styles
-- Tone customization options
-- Category-specific content generation
+</div>
 
-💳 **Flexible Subscription Plans**
+A powerful AI-driven content generation platform built with React+Redux frontend and NestJS backend that helps users create high-quality, engaging content with voice input capabilities, centralized state management, and a seamless payment experience.
 
-- Free trial period
-- Multiple subscription tiers (Free, Basic, Premium)
-- Stripe payment integration
-- Monthly credit system
+## ✨ Features
 
-👤 **User Management**
+- **🤖 AI-Powered Content Generation**: Create blog posts and articles using Google's Gemini 1.5 Pro
+- **🗣️ Voice-to-Text Input**: Generate content through voice using Web Speech API
+- **💳 Flexible Subscription Plans**: Multiple tiers with Stripe payment integration
+- **📊 Credit Management**: Track usage with centralized Redux state management
+- **🔄 History Tracking**: Review and edit previously generated content
+- **🎨 Modern UI**: Sleek design with TailwindCSS and smooth animations
 
-- Secure authentication system
-- User profile management
-- Content generation history
-- Credit usage tracking
+## 🧠 AI Integration
 
-🎨 **Modern UI/UX**
+The application integrates with Google's Gemini 1.5 Pro model to generate high-quality content:
 
-- Responsive design
-- Dark theme
-- Interactive components
-- Framer Motion animations
+- **Blog Posts**: Generate full-featured articles with custom tone and category
+- **Marketing Copy**: Create compelling ad copy and marketing materials
+- **Creative Writing**: Produce stories, poems, and creative content
+- **Technical Documentation**: Generate code explanations and technical guides
 
-## Technical Stack
-
-### Frontend
-
-- React.js with Hooks
-- TailwindCSS for styling
-- Framer Motion for animations
-- React Query for state management
-- Formik & Yup for form handling
-- Stripe Elements for payments
-
-### Backend
-
-- Node.js & Express.js
-- MongoDB with Mongoose
-- JWT authentication
-- Google's Generative AI integration
-- Stripe payment processing
-- Cron jobs for subscription management
-
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
-- MongoDB
+- Node.js (v16+)
+- MongoDB (v5.0+)
 - Stripe account
 - Google AI API key
 
 ### Installation
 
-1. Clone the repository
+1. Clone the repository:
 
-```bash
-git clone https://github.com/joewrdd/AIWrdd-MERN.git
+   ```bash
+   git clone https://github.com/joewrdd/AIWrdd.git
+   cd AIWrdd
+   ```
+
+2. Install server dependencies:
+
+   ```bash
+   cd server
+   npm install
+   ```
+
+3. Install client dependencies:
+
+   ```bash
+   cd client
+   npm install
+   ```
+
+4. Set up environment variables:
+
+   **Server (.env)**
+
+   ```
+   PORT=4000
+   MONGODB_URI=your_mongodb_uri
+   JWT_SECRET=your_jwt_secret
+   GOOGLE_API_KEY=your_google_ai_api_key
+   STRIPE_SECRET_KEY=your_stripe_secret_key
+   STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+   ```
+
+   **Client (.env)**
+
+   ```
+   REACT_APP_API_URL=http://localhost:4000
+   REACT_APP_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+   ```
+
+5. Start the development servers:
+
+   ```bash
+   # Server (in the server directory)
+   npm run start:dev
+
+   # Client (in the client directory)
+   npm start
+   ```
+
+## 📦 Project Structure
+
+```
+AIWrdd/
+├── client/                      # React frontend
+│   ├── public/                  # Static files
+│   └── src/
+│       ├── apis/                # API service integrations
+│       ├── assets/              # Images and static assets
+│       ├── auth/                # Authentication context
+│       ├── components/          # UI components
+│       ├── config/              # Configuration files
+│       └── redux/               # Redux state management
+│           ├── slices/          # Redux toolkit slices
+│           └── store/           # Redux store configuration
+│
+├── server/                      # NestJS backend
+│   ├── src/
+│       ├── auth/                # Authentication module
+│       ├── history/             # Content history module
+│       ├── openai/              # AI integration module
+│       ├── stripe/              # Payment processing module
+│       ├── users/               # User management module
+│       └── app.module.ts        # Main application module
 ```
 
-2. Install server dependencies
+## 🌟 Key Features Explained
 
-```bash
-cd server
-npm install
-```
+### Centralized State Management with Redux
 
-3. Install client dependencies
+The application uses Redux Toolkit for efficient state management:
 
-```bash
-cd client
-npm install
-```
+- **User Slice**: Manages authentication, user profile, and credit information
+- **Content Slice**: Handles content generation state and history
+- **Voice Slice**: Controls voice input and transcription states
+- **UI Slice**: Manages UI-related states like modals and messages
+- **Payment Slice**: Handles payment processing states
 
-4. Set up environment variables
+### Voice Input with Web Speech API
 
-```bash
-# Server .env
-PORT=3008
-MONGODB_URI=your_mongodb_uri
-JWT_SECRET=your_jwt_secret
-GOOGLE_API_KEY=your_google_ai_api_key
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+The application leverages the browser's Web Speech API to:
 
-# Client .env
-REACT_APP_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
-REACT_APP_API_URL=http://localhost:3008
-```
+- Convert speech to text in real-time
+- Allow editing of transcribed content before generation
+- Support continuous speech recognition
+- Provide visual feedback during recording
 
-5. Start the development servers
+### Subscription Management
 
-```bash
-# Start Backend Server
-cd server
-npm run server
+The credit-based subscription system includes:
 
-# Start Frontend Development Server
-cd client
-npm start
-```
+- Monthly credit allocations based on plan tier
+- Automatic renewal of credits on billing cycle
+- Usage tracking with Redux state
+- Payment processing through Stripe
 
-## API Endpoints
+## 🔌 API Endpoints
 
 ### Authentication
 
-- POST `/api/users/register` - User registration
-- POST `/api/users/login` - User login
-- POST `/api/users/logout` - User logout
-- GET `/api/users/profile` - Get user profile
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/check` - Verify authentication
+
+### User Management
+
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile` - Update user profile
 
 ### Content Generation
 
-- POST `/api/openai/generate-content` - Generate AI content
-- GET `/api/history/:id` - View content history
-- PUT `/api/history/:id` - Update content
-- DELETE `/api/history/:id` - Delete content
+- `POST /api/openai/generate` - Generate AI content
+- `GET /api/history` - Get content history
+- `PUT /api/history/:id` - Update content history item
+- `DELETE /api/history/:id` - Delete content history item
 
-### Payments
+### Payment Processing
 
-- POST `/api/stripe/checkout` - Create payment intent
-- POST `/api/stripe/webhook` - Handle Stripe webhooks
-- POST `/api/stripe/free-plan` - Activate free plan
-- POST `/api/stripe/verify-payment/:paymentId` - Verify payment
+- `POST /api/stripe/checkout` - Create payment intent
+- `POST /api/stripe/verify-payment/:id` - Verify payment
+- `POST /api/stripe/free-plan` - Activate free plan
+- `GET /api/stripe/fix-subscription` - Fix subscription issues
 
-## Project Structure
+## 🙏 Acknowledgements
 
-```
-├── client/                 # React frontend
-│   ├── src/
-│   │   ├── apis/          # API integration
-│   │   ├── auth/          # Authentication context
-│   │   ├── components/    # React components
-│   │   └── config/        # Configuration files
-│
-├── server/                 # Node.js backend
-│   ├── controllers/       # Route controllers
-│   ├── middlewares/       # Custom middlewares
-│   ├── models/           # Mongoose models
-│   ├── routes/           # API routes
-│   └── utils/            # Utility functions
-```
+- [Google's Gemini API](https://ai.google.dev/) for powerful AI content generation
+- [NestJS](https://nestjs.com/) for providing a robust backend framework
+- [Redux Toolkit](https://redux-toolkit.js.org/) for simplified state management
+- [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) for voice recognition capabilities
+- [Stripe](https://stripe.com/) for secure payment processing
 
-## Contributing
+## 📄 License
 
-Contributions Are Welcome! Please Feel Free To Submit A Pull Request.
+This project is available under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## License
+---
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+<div align="center">
+  <p>Created With ❤️ by Joe Wrdd</p>
+</div>
 
 ```
 

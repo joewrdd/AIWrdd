@@ -11,6 +11,7 @@ import AppFeatures from "./components/AppFeatures/AppFeatures";
 import AboutUs from "./components/About/AboutUs";
 import ContentGenerationHistory from "./components/Users/ContentGenerationHistory";
 import GenerateContent from "./components/ContentGeneration/GenerateContent";
+import VoiceContentGenerator from "./components/ContentGeneration/VoiceContentGenerator";
 import FreePlanSignup from "./components/StripePayment/FreePlanSignup";
 import PrivateNavbar from "./components/Navbar/PrivateNavbar";
 import { useAuth } from "./auth/AuthContext";
@@ -69,6 +70,14 @@ export default function App() {
             element={
               <AuthRoute>
                 <GenerateContent />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/voice-to-content"
+            element={
+              <AuthRoute>
+                <VoiceContentGenerator />
               </AuthRoute>
             }
           />

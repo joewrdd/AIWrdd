@@ -39,16 +39,12 @@ const Registration = () => {
     },
     validationSchema: validationSchema,
     onSubmit: (values) => {
-      // Handle The Form Submission
-      console.log("Form values", values);
       mutation.mutate(values);
-      // Simulate Successful Registration
       setTimeout(() => {
         navigate("/login");
       }, 1000);
     },
   });
-  console.log(mutation);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">

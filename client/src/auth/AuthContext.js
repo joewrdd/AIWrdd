@@ -1,31 +1,59 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { authAPI } from "../apis/usersAPI";
-import { useQuery } from "@tanstack/react-query";
+import {
+  selectIsAuthenticated,
+  selectUserLoading,
+  selectUserError,
+  fetchUserProfile,
+  logoutUser,
+  setLoading,
+} from "../redux/slices/userSlice";
+import {
+  selectAuthChecked,
+  setAuthChecked,
+} from "../redux/slices/processSlice";
 import React from "react";
 
 export const AuthContext = createContext();
 
 // eslint-disable-next-line react/prop-types
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const dispatch = useDispatch();
 
-  const { isError, isLoading, data, isSuccess } = useQuery({
-    queryFn: authAPI,
-    queryKey: ["checkAuth"],
-  });
+  // Get auth state from Redux
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const isLoading = useSelector(selectUserLoading);
+  const isError = useSelector(selectUserError);
+  const authChecked = useSelector(selectAuthChecked);
 
+  // Check auth status on component mount
   useEffect(() => {
-    if (isSuccess) {
-      setIsAuthenticated(data);
-    }
-  }, [data, isSuccess]);
+    const checkAuth = async () => {
+      try {
+        dispatch(setLoading(true));
+        const authStatus = await authAPI();
+        if (authStatus) {
+          await dispatch(fetchUserProfile()).unwrap();
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error);
+      } finally {
+        dispatch(setAuthChecked(true));
+        dispatch(setLoading(false));
+      }
+    };
+
+    checkAuth();
+  }, [dispatch]);
 
   const login = async () => {
-    setIsAuthenticated(true);
+    // This will be called after a successful login API call
+    dispatch(fetchUserProfile());
   };
 
   const logout = () => {
-    setIsAuthenticated(false);
+    dispatch(logoutUser());
   };
 
   return (
@@ -33,8 +61,8 @@ export const AuthProvider = ({ children }) => {
       value={{
         isAuthenticated,
         isError,
-        isLoading,
-        isSuccess,
+        isLoading: isLoading && !authChecked,
+        isSuccess: isAuthenticated && !isLoading && !isError,
         login,
         logout,
       }}

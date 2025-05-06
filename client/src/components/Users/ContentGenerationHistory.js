@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { useState } from "react";
+import React from "react";
 import {
   FaRegEdit,
   FaTrashAlt,
@@ -8,66 +8,94 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { profileAPI } from "../../apis/usersAPI";
 import {
+  getAllContentHistoryAPI,
   updateContentAPI,
   deleteContentAPI,
 } from "../../apis/contentHistoryAPI";
 import StatusMessage from "../Alert/StatusMessage";
+import {
+  openModal,
+  closeModal,
+  setSelectedContent,
+  setEditedContent,
+  setContentToDelete,
+  resetContentState,
+  selectViewContentModal,
+  selectEditContentModal,
+  selectDeleteContentModal,
+  selectSelectedContent,
+  selectEditedContent,
+  selectContentToDelete,
+} from "../../redux/slices/uiSlice";
 
 const ContentGenerationHistory = () => {
-  const [selectedContent, setSelectedContent] = useState(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editedContent, setEditedContent] = useState("");
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [contentToDelete, setContentToDelete] = useState(null);
+  const dispatch = useDispatch();
+
+  const isViewModalOpen = useSelector(selectViewContentModal);
+  const isEditModalOpen = useSelector(selectEditContentModal);
+  const isDeleteModalOpen = useSelector(selectDeleteContentModal);
+  const selectedContent = useSelector(selectSelectedContent);
+  const editedContent = useSelector(selectEditedContent);
+  const contentToDelete = useSelector(selectContentToDelete);
+
   const queryClient = useQueryClient();
 
-  // Queries
-  const { isLoading, isError, data, error } = useQuery({
+  const {
+    isLoading: isHistoryLoading,
+    isError: isHistoryError,
+    data: historyData,
+    error: historyError,
+  } = useQuery({
+    queryFn: getAllContentHistoryAPI,
+    queryKey: ["contentHistory"],
+  });
+
+  const { isLoading: isProfileLoading, data: profileData } = useQuery({
     queryFn: profileAPI,
     queryKey: ["profile"],
   });
 
-  // Mutations
   const deleteMutation = useMutation({
     mutationFn: deleteContentAPI,
     onSuccess: () => {
+      queryClient.invalidateQueries(["contentHistory"]);
       queryClient.invalidateQueries(["profile"]);
+      dispatch(closeModal("deleteContent"));
+      dispatch(setContentToDelete(null));
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: updateContentAPI,
     onSuccess: () => {
+      queryClient.invalidateQueries(["contentHistory"]);
       queryClient.invalidateQueries(["profile"]);
-      setIsEditModalOpen(false);
+      dispatch(closeModal("editContent"));
     },
   });
 
-  // Handlers
   const handleView = async (content) => {
-    setSelectedContent(content);
-    setIsViewModalOpen(true);
+    dispatch(setSelectedContent(content));
+    dispatch(openModal("viewContent"));
   };
 
   const handleEdit = (content) => {
-    setSelectedContent(content);
-    setEditedContent(content.content);
-    setIsEditModalOpen(true);
+    dispatch(setSelectedContent(content));
+    dispatch(setEditedContent(content.content));
+    dispatch(openModal("editContent"));
   };
 
   const handleDelete = async (content) => {
-    setContentToDelete(content);
-    setIsDeleteModalOpen(true);
+    dispatch(setContentToDelete(content));
+    dispatch(openModal("deleteContent"));
   };
 
   const confirmDelete = async () => {
     try {
       await deleteMutation.mutateAsync(contentToDelete._id);
-      setIsDeleteModalOpen(false);
-      setContentToDelete(null);
     } catch (error) {
       console.error("Delete error:", error);
     }
@@ -84,17 +112,28 @@ const ContentGenerationHistory = () => {
     }
   };
 
-  //----- Loading State -----
-  if (isLoading) {
+  React.useEffect(() => {
+    return () => {
+      dispatch(resetContentState());
+    };
+  }, [dispatch]);
+
+  if (isHistoryLoading || isProfileLoading) {
     return <StatusMessage type="loading" message="Loading please wait..." />;
   }
 
-  //----- Error State -----
-  if (isError) {
+  if (isHistoryError) {
     return (
-      <StatusMessage type="error" message={error?.response?.data?.message} />
+      <StatusMessage
+        type="error"
+        message={
+          historyError?.response?.data?.message || "Failed to load history"
+        }
+      />
     );
   }
+
+  const historyItems = historyData?.history || profileData?.user?.history || [];
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -117,7 +156,7 @@ const ContentGenerationHistory = () => {
         </Link>
 
         <div className="bg-gradient-to-br from-white to-gray-50 shadow-lg rounded-xl border border-gray-100">
-          {!data?.user?.history || data?.user?.history?.length <= 0 ? (
+          {!historyItems || historyItems.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-gray-500 text-lg font-medium">
                 No History Found
@@ -128,7 +167,7 @@ const ContentGenerationHistory = () => {
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
-              {data?.user?.history?.map((content) => (
+              {historyItems.map((content) => (
                 <li
                   key={content._id}
                   className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150 flex items-center justify-between space-x-4"
@@ -174,7 +213,7 @@ const ContentGenerationHistory = () => {
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] relative">
             {/* Close button */}
             <button
-              onClick={() => setIsViewModalOpen(false)}
+              onClick={() => dispatch(closeModal("viewContent"))}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
             >
               <FaTimes className="w-5 h-5" />
@@ -198,7 +237,7 @@ const ContentGenerationHistory = () => {
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[80vh] relative">
             {/* Close button */}
             <button
-              onClick={() => setIsEditModalOpen(false)}
+              onClick={() => dispatch(closeModal("editContent"))}
               className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 transition-colors"
             >
               <FaTimes className="w-5 h-5" />
@@ -210,14 +249,14 @@ const ContentGenerationHistory = () => {
             <div className="mb-4">
               <textarea
                 value={editedContent}
-                onChange={(e) => setEditedContent(e.target.value)}
+                onChange={(e) => dispatch(setEditedContent(e.target.value))}
                 className="w-full h-40 p-2 border rounded-lg focus:ring-2 focus:ring-[#432752] focus:border-transparent"
               />
             </div>
 
             <div className="flex justify-end space-x-2 border-t pt-4">
               <button
-                onClick={() => setIsEditModalOpen(false)}
+                onClick={() => dispatch(closeModal("editContent"))}
                 className="px-4 py-2 rounded text-gray-500 hover:text-gray-700 transition-colors"
               >
                 Cancel
@@ -246,10 +285,7 @@ const ContentGenerationHistory = () => {
             </p>
             <div className="flex justify-end space-x-2">
               <button
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  setContentToDelete(null);
-                }}
+                onClick={() => dispatch(closeModal("deleteContent"))}
                 className="px-4 py-2 rounded text-gray-500 hover:text-gray-700 transition-colors"
               >
                 Cancel

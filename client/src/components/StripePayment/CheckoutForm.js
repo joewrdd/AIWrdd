@@ -1,164 +1,170 @@
-import React, { useState } from "react";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
-  PaymentElement,
   useStripe,
   useElements,
+  PaymentElement,
 } from "@stripe/react-stripe-js";
-import { useParams, useSearchParams } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
+import { fetchUserProfile } from "../../redux/slices/userSlice";
+import {
+  setPaymentStatus,
+  setErrorMessage,
+  setClientSecret,
+  setIsLoading,
+  selectPaymentStatus,
+  selectErrorMessage,
+  selectClientSecret,
+  selectIsLoading,
+  resetPaymentState,
+} from "../../redux/slices/paymentSlice";
+import { FaSpinner } from "react-icons/fa";
 import { createStripePaymentIntent } from "../../apis/stripePaymentAPI";
-import { FaSpinner, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 
 const CheckoutForm = () => {
-  //----- Get Payloads -----
-  const params = useParams();
-  const [searchParams] = useSearchParams();
-  const plan = params.plan;
-  const rawAmount = searchParams.get("amount");
-  const amount = rawAmount ? parseInt(rawAmount, 10) : 0;
-
-  //---- Mutation -----
-  const mutation = useMutation({
-    mutationFn: createStripePaymentIntent,
-    onError: (error) => {
-      console.error("Payment intent creation failed:", error);
-      setPaymentStatus("error");
-      setErrorMessage(error.message || "Failed to create payment");
-    },
-  });
-
-  //----- Stripe Configuration -----
+  const dispatch = useDispatch();
   const stripe = useStripe();
   const elements = useElements();
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState("idle");
+  const navigate = useNavigate();
+  const { plan } = useParams();
+  const location = useLocation();
 
-  //----- Handle Submit -----
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!stripe || !elements) {
+  const paymentStatus = useSelector(selectPaymentStatus);
+  const errorMessage = useSelector(selectErrorMessage);
+  const clientSecret = useSelector(selectClientSecret);
+  const isLoading = useSelector(selectIsLoading);
+
+  const searchParams = new URLSearchParams(location.search);
+  const amount = searchParams.get("amount");
+
+  useEffect(() => {
+    dispatch(fetchUserProfile());
+    dispatch(resetPaymentState());
+
+    const initiatePayment = async () => {
+      try {
+        dispatch(setIsLoading(true));
+        const paymentData = {
+          amount: amount,
+          subscriptionPlan: plan,
+        };
+
+        const response = await createStripePaymentIntent(paymentData);
+        dispatch(setClientSecret(response.clientSecret));
+      } catch (error) {
+        console.error("Error creating payment intent:", error);
+        dispatch(
+          setErrorMessage(
+            error.response?.data?.message || "Failed to initialize payment."
+          )
+        );
+        dispatch(setPaymentStatus("error"));
+      } finally {
+        dispatch(setIsLoading(false));
+      }
+    };
+
+    initiatePayment();
+
+    return () => {
+      dispatch(resetPaymentState());
+    };
+  }, [dispatch, amount, plan]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!stripe || !elements || !clientSecret) {
       return;
     }
 
-    setPaymentStatus("loading");
-    setErrorMessage(null);
+    dispatch(setPaymentStatus("processing"));
 
     try {
       const { error: submitError } = await elements.submit();
+
       if (submitError) {
-        console.error("Elements submit error:", submitError);
-        setPaymentStatus("error");
-        setErrorMessage(submitError.message);
+        dispatch(setErrorMessage(submitError.message));
+        dispatch(setPaymentStatus("error"));
         return;
       }
 
-      const data = {
-        amount,
-        subscriptionPlan: plan,
-      };
-
-      const result = await mutation.mutateAsync(data);
-      console.log("Payment intent created:", result);
-
-      if (!result.clientSecret) {
-        throw new Error("No client secret received");
-      }
-
-      // Update The "return_url" To Include Payment Intent-ID
-      const { error: confirmError } = await stripe.confirmPayment({
+      const result = await stripe.confirmPayment({
         elements,
-        clientSecret: result.clientSecret,
+        clientSecret,
         confirmParams: {
-          return_url: `${window.location.origin}/success?payment_intent=${result.paymentId}`,
-          payment_method_data: {
-            billing_details: {
-              email: result.metadata.userEmail,
-            },
-          },
+          return_url: `${window.location.origin}/success`,
         },
+        redirect: "if_required",
       });
 
-      if (confirmError) {
-        console.error("Payment confirmation error:", confirmError);
-        setPaymentStatus("error");
-        setErrorMessage(confirmError.message);
+      if (result.error) {
+        dispatch(setErrorMessage(result.error.message));
+        dispatch(setPaymentStatus("error"));
+      } else {
+        dispatch(setPaymentStatus("succeeded"));
+        navigate(`/success?session_id=${result.paymentIntent.id}`);
       }
     } catch (error) {
       console.error("Payment error:", error);
-      setPaymentStatus("error");
-      setErrorMessage(error.message || "Payment failed");
-    }
-  };
-
-  const renderButtonContent = () => {
-    switch (paymentStatus) {
-      case "loading":
-        return (
-          <div className="flex items-center justify-center">
-            <FaSpinner className="animate-spin mr-2" />
-            Processing...
-          </div>
-        );
-      case "success":
-        return (
-          <div className="flex items-center justify-center">
-            <FaCheckCircle className="mr-2" />
-            Payment Successful
-          </div>
-        );
-      case "error":
-        return (
-          <div className="flex items-center justify-center">
-            <FaTimesCircle className="mr-2" />
-            Payment Failed
-          </div>
-        );
-      default:
-        return "Pay Now";
+      dispatch(
+        setErrorMessage(error.message || "An unexpected error occurred.")
+      );
+      dispatch(setPaymentStatus("error"));
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
-      <form
-        onSubmit={handleSubmit}
-        className="max-w-md w-full bg-gray-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-8"
-      >
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-center text-white mb-2">
-            Complete Payment
-          </h2>
-          <p className="text-center text-gray-300 text-sm">
-            Please enter your payment details to continue
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">{plan} Plan</h2>
+          <p className="text-gray-600 mt-1">${amount} per month</p>
         </div>
 
-        <div className="mb-3 bg-gray-600 p-6 rounded-xl">
-          <PaymentElement />
-        </div>
-
-        <button
-          type="submit"
-          disabled={paymentStatus === "loading" || mutation.isLoading}
-          className={`w-full py-3 px-4 rounded-xl text-sm font-medium text-white 
-            ${
-              paymentStatus === "loading" || mutation.isLoading
-                ? "bg-gray-500 cursor-not-allowed"
-                : "bg-gradient-to-r from-[#432752] via-[#5a3470] to-[#6d4088] hover:opacity-90"
-            } 
-            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#432752] 
-            transition-all duration-200 transform hover:-translate-y-0.5`}
-        >
-          {renderButtonContent()}
-        </button>
-
-        {errorMessage && (
-          <div className="text-red-400 mt-4 text-sm text-center flex items-center justify-center">
-            <FaTimesCircle className="mr-2" />
-            {errorMessage}
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <FaSpinner className="animate-spin h-8 w-8 text-[#5a3470]" />
+            <span className="sr-only">Loading payment form...</span>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <PaymentElement />
+
+            {errorMessage && (
+              <div className="rounded-md bg-red-50 p-4">
+                <div className="flex">
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      Payment Error
+                    </h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      {errorMessage}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={
+                !stripe || paymentStatus === "processing" || !clientSecret
+              }
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#301934] via-[#432752] to-[#5a3470] hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#432752] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {paymentStatus === "processing" ? (
+                <>
+                  <FaSpinner className="animate-spin h-5 w-5 mr-2" />{" "}
+                  Processing...
+                </>
+              ) : (
+                "Pay Now"
+              )}
+            </button>
+          </form>
         )}
-      </form>
+      </div>
     </div>
   );
 };

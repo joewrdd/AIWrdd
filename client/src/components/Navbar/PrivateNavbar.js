@@ -2,12 +2,10 @@ import React from "react";
 import { Fragment } from "react";
 import { Disclosure, Menu, Transition } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-import { PlusIcon } from "@heroicons/react/20/solid";
+import { PlusIcon, MicrophoneIcon } from "@heroicons/react/20/solid";
 import { FiLogOut } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import textLogo from "../../assets/WRDD.png";
-import { logoutAPI } from "../../apis/usersAPI";
-import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "../../auth/AuthContext";
 
 const user = {
@@ -29,12 +27,8 @@ export default function PrivateNavbar() {
   //----- Auth Hook -----
   const { logout } = useAuth();
 
-  //----- Mutation -----
-  const mutation = useMutation({ mutationFn: logoutAPI });
-
   //----- Handling Logout -----
   const handleLogout = () => {
-    mutation.mutate();
     logout();
   };
 
@@ -98,6 +92,21 @@ export default function PrivateNavbar() {
                       <span className="absolute bottom-0 left-0 w-full h-px bg-purple-300/40 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
                     </span>
                   </Link>
+
+                  <Link
+                    to="/voice-to-content"
+                    className="ml-3 relative inline-flex items-center gap-x-2 rounded-lg bg-gradient-to-r from-[#301934] via-[#432752] to-[#5a3470] px-4 py-2.5 text-sm font-medium text-white shadow-xl hover:shadow-lg hover:opacity-95 transition-all duration-300 group"
+                  >
+                    <MicrophoneIcon
+                      className="h-5 w-5 transition-transform group-hover:scale-110 duration-300"
+                      aria-hidden="true"
+                    />
+                    <span className="relative">
+                      Voice Input
+                      <span className="absolute bottom-0 left-0 w-full h-px bg-purple-300/40 transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+                    </span>
+                  </Link>
+
                   {/* Logout Button */}
                   <button
                     onClick={handleLogout}
@@ -163,6 +172,12 @@ export default function PrivateNavbar() {
                   {item.name}
                 </Disclosure.Button>
               ))}
+              <Link
+                to="/voice-to-content"
+                className="text-gray-300 hover:bg-gray-700 hover:text-white block rounded-md px-3 py-2 text-base font-medium"
+              >
+                Voice to Content
+              </Link>
             </div>
             <div className="border-t border-gray-700 pb-3 pt-4">
               <div className="flex items-center px-6 sm:px-6">
