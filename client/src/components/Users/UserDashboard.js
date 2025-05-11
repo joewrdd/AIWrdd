@@ -1,11 +1,13 @@
-import { Link, useLocation } from "react-router-dom";
-import React, { useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import StatusMessage from "../Alert/StatusMessage";
 import axios from "axios";
 import config from "../../config";
 import {
   fetchUserProfile,
+  fixSubscription,
+  updateEffectiveSubscription,
   selectUser,
   selectUserLoading,
   selectUserError,
@@ -13,6 +15,7 @@ import {
   selectUsedCredits,
   selectRemainingCredits,
   selectCurrentCycleUsedCredits,
+  selectEffectiveSubscription,
 } from "../../redux/slices/userSlice";
 import {
   setIsFixing,
@@ -32,7 +35,12 @@ const STATUS_MESSAGE_TIMEOUT = 4000;
 
 const Dashboard = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  const profileFetchedRef = useRef(false);
+  const paramsCleared = useRef(false);
+  const autoFixAttemptedRef = useRef(false);
 
   const user = useSelector(selectUser);
   const isLoading = useSelector(selectUserLoading);
@@ -41,6 +49,7 @@ const Dashboard = () => {
   const totalUsedCredits = useSelector(selectUsedCredits);
   const currentCycleUsedCredits = useSelector(selectCurrentCycleUsedCredits);
   const remainingCredits = useSelector(selectRemainingCredits);
+  const currentSubscription = useSelector(selectEffectiveSubscription);
 
   const isFixing = useSelector(selectIsFixing);
   const fixStatus = useSelector(selectFixStatus);
@@ -51,6 +60,20 @@ const Dashboard = () => {
   const searchParams = new URLSearchParams(location.search);
   const fromPayment = searchParams.get("payment") === "true";
   const forceRefresh = searchParams.get("forcerefresh") === "true";
+
+  // Update effective subscription when user changes
+  useEffect(() => {
+    if (user && user.payments) {
+      dispatch(updateEffectiveSubscription());
+    }
+  }, [user, dispatch]);
+
+  useEffect(() => {
+    if ((fromPayment || forceRefresh) && !paramsCleared.current) {
+      paramsCleared.current = true;
+      navigate("/dashboard", { replace: true });
+    }
+  }, [fromPayment, forceRefresh, navigate]);
 
   useEffect(() => {
     let timeoutId;
@@ -68,29 +91,49 @@ const Dashboard = () => {
   }, [fixStatus, isFixing, statusMessageVisible, dispatch]);
 
   useEffect(() => {
-    dispatch(fetchUserProfile());
+    if (!profileFetchedRef.current) {
+      profileFetchedRef.current = true;
+      dispatch(fetchUserProfile());
+    }
   }, [dispatch]);
 
   useEffect(() => {
     if ((fromPayment || forceRefresh) && !refreshCompleted && user) {
       dispatch(setRefreshCompleted(true));
 
-      const timeoutId = setTimeout(() => {
-        dispatch(fetchUserProfile());
-      }, 3000);
+      if (fromPayment) {
+        dispatch(fixSubscription())
+          .unwrap()
+          .then(() => {
+            profileFetchedRef.current = false;
+            dispatch(fetchUserProfile());
+          })
+          .catch((err) => {
+            console.error("Error Fixing Subscription, fromPayment:", err);
+          });
+      } else {
+        const timeoutId = setTimeout(() => {
+          profileFetchedRef.current = false;
+          dispatch(fetchUserProfile());
+        }, 3000);
 
-      return () => clearTimeout(timeoutId);
+        return () => clearTimeout(timeoutId);
+      }
     }
   }, [dispatch, fromPayment, forceRefresh, refreshCompleted, user]);
 
   useEffect(() => {
     const autoFixSubscription = async (userData) => {
+      if (autoFixAttemptedRef.current) return;
+
       if (
         ((userData?.subscription === "Premium" ||
           userData?.subscription === "Basic") &&
           (!userData.payments || userData.payments.length === 0)) ||
         fromPayment
       ) {
+        autoFixAttemptedRef.current = true;
+
         try {
           dispatch(setIsFixing(true));
           dispatch(clearLocalError());
@@ -102,21 +145,25 @@ const Dashboard = () => {
             setFixStatus({
               success: true,
               message:
-                response.data.message || "Subscription updated successfully",
+                response.data.message || "Subscription Updated Successfully",
             })
           );
-          setTimeout(() => {
+
+          const timeoutId = setTimeout(() => {
+            profileFetchedRef.current = false;
             dispatch(fetchUserProfile());
           }, 1000);
+
+          return () => clearTimeout(timeoutId);
         } catch (error) {
-          console.error("Error fixing subscription:", error);
-          dispatch(setLocalError(error.message || "An error occurred"));
+          console.error("Error Fixing Subscription:", error);
+          dispatch(setLocalError(error.message || "An Error Occurred"));
           dispatch(
             setFixStatus({
               success: false,
               message:
                 error.response?.data?.message ||
-                "Could not update subscription automatically.",
+                "Could Not Update Subscription Automatically.",
             })
           );
         } finally {
@@ -131,6 +178,12 @@ const Dashboard = () => {
         dispatch(setLocalError(err.message || "Failed to fix subscription"));
       });
     }
+
+    return () => {
+      profileFetchedRef.current = false;
+      paramsCleared.current = false;
+      autoFixAttemptedRef.current = false;
+    };
   }, [user, isFixing, fixStatus, dispatch, fromPayment]);
 
   if (isLoading) {
@@ -150,9 +203,9 @@ const Dashboard = () => {
     return <StatusMessage type="error" message="No user data available" />;
   }
 
-  const justSubscribed = fromPayment && user.subscription !== "Trial";
+  const justSubscribed = fromPayment && currentSubscription !== "Trial";
   const hasActiveSubscription =
-    user.subscription !== "Trial" && !user.trialActive;
+    currentSubscription !== "Trial" && !user.trialActive;
 
   const payments = user.payments || [];
   const hasPayments = payments.length > 0;
@@ -179,8 +232,8 @@ const Dashboard = () => {
             <div>
               <h3 className="text-lg font-medium">Subscription Activated!</h3>
               <p className="text-sm">
-                Your {user.subscription} plan is now active. Enjoy your enhanced
-                features!
+                Your {currentSubscription} Plan Is Now Active. Enjoy Your
+                Enhanced Features!
               </p>
             </div>
           </div>
@@ -206,13 +259,12 @@ const Dashboard = () => {
             </svg>
             <div>
               <h3 className="text-lg font-medium">Syncing Subscription</h3>
-              <p className="text-sm">We're updating your account details...</p>
+              <p className="text-sm">We're Updating Your Account Details...</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Fix status message */}
       {!isFixing && fixStatus && statusMessageVisible && (
         <div className="mb-6 max-w-3xl mx-auto">
           <div
@@ -404,37 +456,37 @@ const Dashboard = () => {
                 Current Plan:{" "}
                 <span
                   className={`font-semibold ${
-                    user?.subscription === "Premium"
+                    currentSubscription === "Premium"
                       ? "text-purple-700"
-                      : user?.subscription === "Basic"
+                      : currentSubscription === "Basic"
                       ? "text-blue-700"
                       : "text-gray-800"
                   }`}
                 >
-                  {user?.subscription || "No Plan"}
+                  {currentSubscription || "No Plan"}
                 </span>
               </p>
-              {user?.subscription === "Trial" && (
+              {currentSubscription === "Trial" && (
                 <p className="border mb-2 rounded w-full py-2 px-3 text-gray-700 leading-tight">
                   Trial: 25 Monthly Requests
                 </p>
               )}
-              {user?.subscription === "Free" && (
+              {currentSubscription === "Free" && (
                 <p className="border mb-2 rounded w-full py-2 px-3 text-gray-700 leading-tight">
                   Free: 5 Monthly Requests
                 </p>
               )}
-              {user?.subscription === "Basic" && (
+              {currentSubscription === "Basic" && (
                 <p className="border mb-2 rounded w-full py-2 px-3 text-gray-700 leading-tight">
                   Basic: 50 Monthly Requests
                 </p>
               )}
-              {user?.subscription === "Premium" && (
+              {currentSubscription === "Premium" && (
                 <p className="border mb-2 rounded w-full py-2 px-3 text-gray-700 leading-tight">
                   Premium: 100 Monthly Requests
                 </p>
               )}
-              {user?.subscription !== "Premium" && (
+              {currentSubscription !== "Premium" && (
                 <Link
                   to="/plans"
                   className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#301934] via-[#432752] to-[#5a3470] hover:shadow-lg hover:opacity-95 transition-all duration-300"
@@ -476,7 +528,7 @@ const Dashboard = () => {
                 <span className="font-semibold text-gray-800">
                   {hasActiveSubscription ? (
                     <span className="text-green-500">
-                      Upgraded To {user?.subscription}
+                      Upgraded To {currentSubscription}
                     </span>
                   ) : (
                     <span
@@ -508,7 +560,7 @@ const Dashboard = () => {
                   </span>
                 </p>
               )}
-              {user?.subscription !== "Premium" && (
+              {currentSubscription !== "Premium" && (
                 <Link
                   to="/plans"
                   className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#301934] via-[#432752] to-[#5a3470] hover:shadow-lg hover:opacity-95 transition-all duration-300"
@@ -587,8 +639,8 @@ const Dashboard = () => {
           ) : (
             <div className="text-center py-8">
               <p className="text-gray-500">No payment history available</p>
-              {user?.subscription !== "Trial" &&
-                user?.subscription !== "Free" && (
+              {currentSubscription !== "Trial" &&
+                currentSubscription !== "Free" && (
                   <p className="text-sm text-gray-400 mt-2">
                     {isFixing
                       ? "Synchronizing your payment information..."

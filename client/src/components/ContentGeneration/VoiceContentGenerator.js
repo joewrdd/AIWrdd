@@ -36,6 +36,8 @@ import {
 
 const VoiceContentGenerator = () => {
   const dispatch = useDispatch();
+  const profileFetchedRef = useRef(false);
+  const recognitionRef = useRef(null);
 
   const transcript = useSelector(selectTranscript);
   const isListening = useSelector(selectIsListening);
@@ -53,14 +55,12 @@ const VoiceContentGenerator = () => {
   const creditAllocation = useSelector(selectCreditAllocation);
   const remainingCredits = useSelector(selectRemainingCredits);
 
-  const recognitionRef = useRef(null);
-
   useEffect(() => {
     if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
       dispatch(setSpeechSupported(false));
       dispatch(
         setVoiceError(
-          "Speech recognition is not supported in your browser. Please try Chrome, Edge, or Safari."
+          "Speech Recognition Is Not Supported In Your Browser. Please Try Chrome, Edge, or Safari."
         )
       );
       return;
@@ -95,8 +95,15 @@ const VoiceContentGenerator = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    dispatch(fetchUserProfile());
-  }, [dispatch]);
+    if (!profileFetchedRef.current && (!user || !user.username)) {
+      profileFetchedRef.current = true;
+      dispatch(fetchUserProfile());
+    }
+
+    return () => {
+      profileFetchedRef.current = false;
+    };
+  }, [user, dispatch]);
 
   const toggleListening = () => {
     if (!speechSupported) return;

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Link } from "react-router-dom";
@@ -15,12 +15,14 @@ import {
   selectUser,
   selectUserLoading,
   selectUserError,
+  fetchUserProfile,
   selectCreditAllocation,
   selectRemainingCredits,
 } from "../../redux/slices/userSlice";
 
 const BlogPostAIAssistant = () => {
   const dispatch = useDispatch();
+  const profileFetchedRef = useRef(false);
 
   const user = useSelector(selectUser);
   const userLoading = useSelector(selectUserLoading);
@@ -32,6 +34,17 @@ const BlogPostAIAssistant = () => {
   const contentLoading = useSelector(selectContentLoading);
   const contentStatus = useSelector(selectContentStatus);
   const contentError = useSelector(selectContentError);
+
+  useEffect(() => {
+    if (!profileFetchedRef.current && (!user || !user.username)) {
+      profileFetchedRef.current = true;
+      dispatch(fetchUserProfile());
+    }
+
+    return () => {
+      profileFetchedRef.current = false;
+    };
+  }, [user, dispatch]);
 
   //----- Formik Setup Handling -----
   const formik = useFormik({

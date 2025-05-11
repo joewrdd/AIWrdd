@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { authAPI } from "../apis/usersAPI";
 import {
@@ -21,47 +21,79 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const dispatch = useDispatch();
 
-  // Get auth state from Redux
+  const authCheckPerformedRef = useRef(false);
+  const profileFetchRequestedRef = useRef(false);
+  const initialMountRef = useRef(true);
+
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const isLoading = useSelector(selectUserLoading);
   const isError = useSelector(selectUserError);
   const authChecked = useSelector(selectAuthChecked);
 
-  // Check auth status on component mount
   useEffect(() => {
     const checkAuth = async () => {
+      if (
+        !initialMountRef.current ||
+        authCheckPerformedRef.current ||
+        authChecked
+      ) {
+        return;
+      }
+
+      authCheckPerformedRef.current = true;
+
       try {
         dispatch(setLoading(true));
         const authStatus = await authAPI();
+
         if (authStatus) {
-          await dispatch(fetchUserProfile()).unwrap();
+          dispatch(fetchUserProfile());
         }
       } catch (error) {
         console.error("Auth check failed:", error);
       } finally {
         dispatch(setAuthChecked(true));
         dispatch(setLoading(false));
+        initialMountRef.current = false;
       }
     };
 
     checkAuth();
-  }, [dispatch]);
+
+    return () => {
+      initialMountRef.current = true;
+    };
+  }, [dispatch, authChecked]);
 
   const login = async () => {
-    // This will be called after a successful login API call
-    dispatch(fetchUserProfile());
+    if (profileFetchRequestedRef.current) {
+      return;
+    }
+
+    profileFetchRequestedRef.current = true;
+    try {
+      await dispatch(fetchUserProfile()).unwrap();
+    } finally {
+      setTimeout(() => {
+        profileFetchRequestedRef.current = false;
+      }, 1000);
+    }
   };
 
   const logout = () => {
+    authCheckPerformedRef.current = false;
+    profileFetchRequestedRef.current = false;
     dispatch(logoutUser());
   };
+
+  const isAuthLoading = isLoading && !authChecked;
 
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
         isError,
-        isLoading: isLoading && !authChecked,
+        isLoading: isAuthLoading,
         isSuccess: isAuthenticated && !isLoading && !isError,
         login,
         logout,

@@ -9,6 +9,7 @@ const initialState = {
   loading: false,
   error: null,
   status: "idle",
+  effectiveSubscription: null,
 };
 
 export const fetchUserProfile = createAsyncThunk(
@@ -67,6 +68,7 @@ const userSlice = createSlice({
     clearUser: (state) => {
       state.user = null;
       state.isAuthenticated = false;
+      state.effectiveSubscription = null;
     },
     setLoading: (state, action) => {
       state.loading = action.payload;
@@ -83,6 +85,37 @@ const userSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    updateEffectiveSubscription: (state) => {
+      if (!state.user) return;
+
+      const payments = state.user.payments || [];
+      const lastCompletedPayment = payments
+        .filter((payment) => payment.status === "completed")
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+      let subscription = state.user.subscription;
+
+      if (lastCompletedPayment) {
+        if (lastCompletedPayment.subscriptionPlan) {
+          subscription = lastCompletedPayment.subscriptionPlan;
+        } else if (lastCompletedPayment.amount >= 40) {
+          subscription = "Premium";
+        } else if (lastCompletedPayment.amount >= 20) {
+          subscription = "Basic";
+        }
+      }
+
+      state.effectiveSubscription = subscription;
+
+      if (subscription === "Premium" && state.user.monthlyRequestCount < 100) {
+        state.user.monthlyRequestCount = 100;
+      } else if (
+        subscription === "Basic" &&
+        state.user.monthlyRequestCount < 50
+      ) {
+        state.user.monthlyRequestCount = 50;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -96,6 +129,45 @@ const userSlice = createSlice({
         state.loading = false;
         state.user = action.payload.user;
         state.isAuthenticated = !!action.payload.user;
+
+        if (
+          state.user &&
+          state.user.payments &&
+          state.user.payments.length > 0
+        ) {
+          const payments = state.user.payments;
+          const lastCompletedPayment = payments
+            .filter((payment) => payment.status === "completed")
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+          if (lastCompletedPayment) {
+            let subscription;
+            if (lastCompletedPayment.subscriptionPlan) {
+              subscription = lastCompletedPayment.subscriptionPlan;
+            } else if (lastCompletedPayment.amount >= 40) {
+              subscription = "Premium";
+            } else if (lastCompletedPayment.amount >= 20) {
+              subscription = "Basic";
+            }
+
+            if (subscription) {
+              state.effectiveSubscription = subscription;
+
+              // Update credit allocation based on effective subscription
+              if (
+                subscription === "Premium" &&
+                state.user.monthlyRequestCount < 100
+              ) {
+                state.user.monthlyRequestCount = 100;
+              } else if (
+                subscription === "Basic" &&
+                state.user.monthlyRequestCount < 50
+              ) {
+                state.user.monthlyRequestCount = 50;
+              }
+            }
+          }
+        }
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.status = "failed";
@@ -110,6 +182,7 @@ const userSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         state.loading = false;
+        state.effectiveSubscription = null;
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.loading = false;
@@ -136,6 +209,7 @@ export const {
   setError,
   updateCreditUsage,
   clearError,
+  updateEffectiveSubscription,
 } = userSlice.actions;
 
 export const selectUser = (state) => state.user.user;
@@ -143,15 +217,17 @@ export const selectIsAuthenticated = (state) => state.user.isAuthenticated;
 export const selectUserLoading = (state) => state.user.loading;
 export const selectUserError = (state) => state.user.error;
 export const selectUserStatus = (state) => state.user.status;
-export const selectUserSubscription = (state) => state.user.user?.subscription;
+export const selectEffectiveSubscription = (state) =>
+  state.user.effectiveSubscription ||
+  (state.user.user ? state.user.user.subscription : null);
 
 export const selectCreditAllocation = (state) => {
-  const subscription = state.user.user?.subscription;
+  const subscription = selectEffectiveSubscription(state);
 
   if (subscription === "Premium") return 100;
   if (subscription === "Basic") return 50;
   if (subscription === "Trial") return 25;
-  return 5; 
+  return 5;
 };
 
 export const selectCurrentCycleUsedCredits = (state) => {

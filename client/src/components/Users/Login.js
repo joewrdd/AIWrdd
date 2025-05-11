@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Link, useNavigate } from "react-router-dom";
@@ -18,12 +18,18 @@ const validationSchema = Yup.object({
 const Login = () => {
   const { isAuthenticated, login } = useAuth();
   const navigate = useNavigate();
+  const hasNavigatedRef = useRef(false);
 
   //----- ReDirect Logged In User -----
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/dashboard");
+    if (isAuthenticated && !hasNavigatedRef.current) {
+      hasNavigatedRef.current = true;
+      navigate("/dashboard", { replace: true });
     }
+
+    return () => {
+      hasNavigatedRef.current = false;
+    };
   }, [isAuthenticated, navigate]);
 
   //----- Mutation -----
@@ -39,10 +45,6 @@ const Login = () => {
     validationSchema: validationSchema,
     onSubmit: (values) => {
       mutation.mutate(values);
-      //Simulate Successful Login
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 1000);
     },
   });
 

@@ -1,10 +1,9 @@
-import React from "react";
+import React, { useCallback, useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
-import { CheckIcon } from "@heroicons/react/20/solid";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setSelectedPlan } from "../../redux/slices/paymentSlice";
+import { CheckIcon } from "@heroicons/react/20/solid";
 
 const tiers = [
   {
@@ -59,16 +58,29 @@ function classNames(...classes) {
 export default function Plans() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const navigationInProgressRef = useRef(false);
 
-  const handleSelectedPlan = (plan) => {
-    dispatch(setSelectedPlan(plan));
+  const handleSelectedPlan = useCallback(
+    (plan) => {
+      if (navigationInProgressRef.current) return;
+      navigationInProgressRef.current = true;
 
-    if (plan?.id === "Free") {
-      navigate("/free-plan");
-    } else {
-      navigate(`/checkout/${plan?.id}?amount=${plan?.amount}`);
-    }
-  };
+      dispatch(setSelectedPlan(plan));
+
+      if (plan?.id === "Free") {
+        navigate("/free-plan", { replace: true });
+      } else {
+        navigate(`/checkout/${plan?.id}?amount=${plan?.amount}`, {
+          replace: true,
+        });
+      }
+
+      setTimeout(() => {
+        navigationInProgressRef.current = false;
+      }, 500);
+    },
+    [dispatch, navigate]
+  );
 
   const ref = useRef(null);
   const isInView = useInView(ref, { once: false, amount: 0.2 });

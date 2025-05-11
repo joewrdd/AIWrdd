@@ -80,7 +80,6 @@ export class PaymentController {
     return this.paymentService.updateSubscription(body.paymentId, req.user);
   }
 
-  // Debug endpoints
   @UseGuards(JwtAuthGuard)
   @Get("payments")
   async getUserPayments(@Req() req) {

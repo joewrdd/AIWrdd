@@ -140,7 +140,6 @@ export class PaymentService {
     const productId = subscription.items.data[0].price.product as string;
     const product = await this.stripe.products.retrieve(productId);
 
-    // Set subscription type based on product metadata or name
     let subscriptionType = SubscriptionType.BASIC;
     if (
       product.name.includes("Premium") ||
@@ -205,9 +204,9 @@ export class PaymentService {
       const amount = paymentIntent.amount / 100;
       const subscriptionPlan =
         paymentIntent.metadata?.subscriptionPlan ||
-        (amount >= 40 ? "premium" : "basic");
+        (amount >= 50 ? "premium" : "basic");
 
-      if (subscriptionPlan === "premium" || amount >= 40) {
+      if (subscriptionPlan === "premium" || amount >= 50) {
         subscriptionType = SubscriptionType.PREMIUM;
         monthlyRequestCount = 100;
       } else {
@@ -499,7 +498,7 @@ export class PaymentService {
 
           const subscriptionPlan =
             paymentIntent.metadata?.subscriptionPlan ||
-            (latestPayment.amount >= 40 ? "premium" : "basic");
+            (latestPayment.amount >= 50 ? "premium" : "basic");
 
           if (subscriptionPlan === "premium") {
             subscriptionType = SubscriptionType.PREMIUM;
@@ -511,7 +510,7 @@ export class PaymentService {
             subscriptionName = "Basic";
           }
         } else {
-          if (latestPayment.amount >= 40) {
+          if (latestPayment.amount >= 50) {
             subscriptionType = SubscriptionType.PREMIUM;
             monthlyRequestCount = 100;
             subscriptionName = "Premium";
@@ -523,7 +522,7 @@ export class PaymentService {
         }
       } catch (error) {
         console.error(`Error Retrieving Payment From Stripe: ${error.message}`);
-        if (latestPayment.amount >= 40) {
+        if (latestPayment.amount >= 50) {
           subscriptionType = SubscriptionType.PREMIUM;
           monthlyRequestCount = 100;
           subscriptionName = "Premium";
