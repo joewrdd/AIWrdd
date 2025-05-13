@@ -3,12 +3,14 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 import { UsersService } from "../users/users.service";
 import { SubscriptionType } from "../users/schemas/user.schema";
 
+//----- Subscription Tasks For Handling Subscription Tasks -----//
 @Injectable()
 export class SubscriptionTasks {
   private readonly logger = new Logger(SubscriptionTasks.name);
 
   constructor(private readonly usersService: UsersService) {}
 
+  //----- Handle Trial Period Expirations -----//
   @Cron(CronExpression.EVERY_HOUR)
   async handleTrialExpiration() {
     this.logger.log("Checking Trial Period Expirations...");
@@ -19,6 +21,7 @@ export class SubscriptionTasks {
     }
   }
 
+  //----- Reset Free Users' Request Count -----//
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
   async resetFreeUsersRequestCount() {
     this.logger.log("Resetting Monthly Request Count For Free Users...");
@@ -31,6 +34,7 @@ export class SubscriptionTasks {
     }
   }
 
+  //----- Reset Basic Users' Request Count -----//
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
   async resetBasicUsersRequestCount() {
     this.logger.log("Resetting Monthly Request Count For Basic Users...");
@@ -43,6 +47,7 @@ export class SubscriptionTasks {
     }
   }
 
+  //----- Reset Premium Users' Request Count -----//
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
   async resetPremiumUsersRequestCount() {
     this.logger.log("Resetting Monthly Request Count For Premium Users...");

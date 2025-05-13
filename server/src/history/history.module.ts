@@ -7,6 +7,7 @@ import {
   ContentHistorySchema,
 } from "./schemas/content-history.schema";
 
+//----- History Module For Managing User History -----//
 @Module({
   imports: [
     MongooseModule.forFeature([

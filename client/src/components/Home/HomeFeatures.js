@@ -7,6 +7,7 @@ import banner1 from "../../assets/banner1.png";
 import banner2 from "../../assets/banner2.png";
 import banner3 from "../../assets/banner3.png";
 
+//----- Features For Home Section -----//
 export default function HomeFeatures() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: false, amount: 0.2 });

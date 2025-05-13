@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { generateContent } from "./contentSlice";
 
+//----- Initial State -----//
 const initialState = {
   transcript: "",
   isListening: false,
@@ -8,6 +9,7 @@ const initialState = {
   error: null,
 };
 
+//----- Voice Slice -----//
 const voiceSlice = createSlice({
   name: "voice",
   initialState,
@@ -41,6 +43,7 @@ const voiceSlice = createSlice({
   },
 });
 
+//----- Voice Slice Actions -----//
 export const {
   setTranscript,
   appendTranscript,
@@ -51,9 +54,11 @@ export const {
   clearVoiceError,
 } = voiceSlice.actions;
 
+//----- Voice Slice Selectors -----//
 export const selectTranscript = (state) => state.voice.transcript;
 export const selectIsListening = (state) => state.voice.isListening;
 export const selectSpeechSupported = (state) => state.voice.speechSupported;
 export const selectVoiceError = (state) => state.voice.error;
 
+//----- Voice Slice Reducer -----//
 export default voiceSlice.reducer;

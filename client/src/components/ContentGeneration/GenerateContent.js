@@ -20,21 +20,25 @@ import {
   selectRemainingCredits,
 } from "../../redux/slices/userSlice";
 
+//----- Blog Post AI Assistant Component -----//
 const BlogPostAIAssistant = () => {
   const dispatch = useDispatch();
   const profileFetchedRef = useRef(false);
 
+  //----- Selectors For Handling Redux State -----//
   const user = useSelector(selectUser);
   const userLoading = useSelector(selectUserLoading);
   const userError = useSelector(selectUserError);
   const creditAllocation = useSelector(selectCreditAllocation);
   const remainingCredits = useSelector(selectRemainingCredits);
 
+  //----- Selectors For Handling Content State -----//
   const generatedContent = useSelector(selectContent);
   const contentLoading = useSelector(selectContentLoading);
   const contentStatus = useSelector(selectContentStatus);
   const contentError = useSelector(selectContentError);
 
+  //----- Use Effect For Handling User Profile -----//
   useEffect(() => {
     if (!profileFetchedRef.current && (!user || !user.username)) {
       profileFetchedRef.current = true;

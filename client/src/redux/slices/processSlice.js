@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+//----- Initial State -----//
 const initialState = {
   isFixing: false,
   fixStatus: null,
@@ -9,6 +10,7 @@ const initialState = {
   refreshCompleted: false,
 };
 
+//----- Process Slice -----//
 export const processSlice = createSlice({
   name: "process",
   initialState,
@@ -48,6 +50,7 @@ export const processSlice = createSlice({
   },
 });
 
+//----- Process Slice Actions -----//
 export const {
   setIsFixing,
   setFixStatus,
@@ -59,6 +62,7 @@ export const {
   resetProcessState,
 } = processSlice.actions;
 
+//----- Process Slice Selectors -----//
 export const selectIsFixing = (state) => state.process.isFixing;
 export const selectFixStatus = (state) => state.process.fixStatus;
 export const selectLocalError = (state) => state.process.localError;
@@ -67,4 +71,5 @@ export const selectStatusMessageVisible = (state) =>
   state.process.statusMessageVisible;
 export const selectRefreshCompleted = (state) => state.process.refreshCompleted;
 
+//----- Process Slice Reducer -----//
 export default processSlice.reducer;

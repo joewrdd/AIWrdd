@@ -5,6 +5,8 @@ import { useDispatch } from "react-redux";
 import { setSelectedPlan } from "../../redux/slices/paymentSlice";
 import { CheckIcon } from "@heroicons/react/20/solid";
 
+
+//----- Tiers For Plans Component -----//
 const tiers = [
   {
     name: "Free",
@@ -51,15 +53,21 @@ const tiers = [
   },
 ];
 
+//----- Class Names For Plans Component -----//
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
+//----- Plans Component -----//
 export default function Plans() {
+  //----- Dispatch For Handling Redux Actions -----//
   const dispatch = useDispatch();
+  //----- Navigation For Plans Component -----//
   const navigate = useNavigate();
+  //----- Ref For Handling Navigation -----//
   const navigationInProgressRef = useRef(false);
 
+  //----- Handle Selected Plan -----//
   const handleSelectedPlan = useCallback(
     (plan) => {
       if (navigationInProgressRef.current) return;

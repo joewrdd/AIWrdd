@@ -19,30 +19,37 @@ import {
   selectRetryCount,
 } from "../../redux/slices/paymentSlice";
 
+//----- Payment Success Component -----//
 export default function PaymentSuccess() {
+  //----- Dispatch For Handling Redux Actions -----//
   const dispatch = useDispatch();
+  //----- Location For Handling URL Search Params -----//
   const location = useLocation();
 
+  //----- Selectors For Handling Redux State -----//
   const status = useSelector(selectPaymentStatus);
   const message = useSelector(selectSuccessMessage);
   const debugInfo = useSelector(selectDebugInfo);
   const retryCount = useSelector(selectRetryCount);
 
+  //----- Search Params For Handling URL Search Params -----//
   const searchParams = new URLSearchParams(location.search);
   const sessionId = searchParams.get("session_id");
   const debug = searchParams.get("debug") === "true";
 
+  //----- Use Effect For Handling Payment Status -----//
   useEffect(() => {
     if (!sessionId) {
-      dispatch(setPaymentStatus("failed"));
+      dispatch(setPaymentStatus("Failed"));
       dispatch(
         setSuccessMessage(
-          "No session ID provided. Payment verification failed."
+          "No Session ID Provided. Payment Verification Failed."
         )
       );
       return;
     }
 
+    //----- Check Payment Status -----//
     const checkPaymentStatus = async () => {
       try {
         dispatch(setPaymentStatus("loading"));
@@ -52,7 +59,7 @@ export default function PaymentSuccess() {
         if (response.verified || response.paymentStatus === "succeeded") {
           dispatch(setPaymentStatus("success"));
           dispatch(
-            setSuccessMessage(response.message || "Payment successful!")
+            setSuccessMessage(response.message || "Payment Successful!")
           );
           dispatch(setDebugInfo(response));
         } else {
@@ -63,23 +70,23 @@ export default function PaymentSuccess() {
           ) {
             dispatch(incrementRetryCount());
             dispatch(setPaymentStatus("loading"));
-            dispatch(setSuccessMessage("Payment is still processing..."));
+            dispatch(setSuccessMessage("Payment Is Still Processing..."));
 
             setTimeout(() => checkPaymentStatus(), 2000);
           } else {
             dispatch(setPaymentStatus("failed"));
             dispatch(
               setSuccessMessage(
-                response.message || "Payment verification failed."
+                response.message || "Payment Verification Failed."
               )
             );
           }
         }
       } catch (error) {
-        console.error("Payment verification error:", error);
+        console.error("Payment Verification Error:", error);
         dispatch(setPaymentStatus("failed"));
         dispatch(
-          setSuccessMessage("An error occurred while verifying payment.")
+          setSuccessMessage("An Error Occurred While Verifying Payment.")
         );
         dispatch(setDebugInfo({ error: error.message }));
       }

@@ -1,6 +1,7 @@
 import axios from "axios";
 import config from "../config";
 
+//----- Class For Handling Users API -----
 //----- Registration -----
 export const regesterAPI = async (userData) => {
   try {
@@ -17,7 +18,7 @@ export const regesterAPI = async (userData) => {
     );
     return response?.data;
   } catch (error) {
-    console.error("Registration error:", error.message);
+    console.error("Registration Error:", error.message);
     throw error;
   }
 };
@@ -37,7 +38,7 @@ export const loginAPI = async (userData) => {
     );
     return response?.data;
   } catch (error) {
-    console.error("Login error:", error.message);
+    console.error("Login Error:", error.message);
     throw error;
   }
 };
@@ -50,12 +51,15 @@ export const authAPI = async () => {
     });
 
     if (!response.data) {
-      throw new Error("No data received from auth check");
+      throw new Error("No Data Received From Authentication Check.");
     }
 
     return response.data;
   } catch (error) {
-    console.error("Auth check error:", error.response?.data || error.message);
+    console.error(
+      "Authentication Check Error:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
@@ -72,7 +76,7 @@ export const logoutAPI = async () => {
     );
     return response?.data;
   } catch (error) {
-    console.error("Logout error:", error.message);
+    console.error("Logout Error:", error.message);
     throw error;
   }
 };
@@ -101,7 +105,7 @@ export const profileAPI = async () => {
         profileResponse.data.user.payments = paymentsResponse.data.payments;
       }
     } catch (paymentError) {
-      console.warn("Failed to fetch payment history:", paymentError.message);
+      console.warn("Failed To Fetch Payment History:", paymentError.message);
       if (!profileResponse.data.user.payments) {
         profileResponse.data.user.payments = [];
       }
@@ -109,10 +113,10 @@ export const profileAPI = async () => {
 
     return profileResponse?.data;
   } catch (error) {
-    console.error("Profile fetch error:", error.message);
+    console.error("Profile Fetch Error:", error.message);
     if (error.response) {
       console.error(
-        "Error response:",
+        "Error Response:",
         error.response.status,
         error.response.data
       );

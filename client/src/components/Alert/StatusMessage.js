@@ -5,10 +5,12 @@ import {
   AiOutlineLoading3Quarters,
 } from "react-icons/ai";
 
+//----- Status Message Component -----//
 const StatusMessage = ({ type, message }) => {
   let icon;
   let colorClass;
 
+  //----- Switch Case For Handling Status Message -----//
   switch (type) {
     case "error":
       icon = <AiOutlineCloseCircle className="text-red-500 text-3xl" />;

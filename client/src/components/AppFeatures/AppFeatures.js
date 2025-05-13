@@ -7,6 +7,7 @@ import {
   ClockIcon,
 } from "@heroicons/react/20/solid";
 
+//----- Features For App Features Section -----//
 const features = [
   {
     name: "AI-Powered Content Creation",
@@ -31,7 +32,9 @@ const features = [
   },
 ];
 
+//----- App Features Component -----//
 export default function AppFeatures() {
+  //----- Ref For Handling App Features Section -----//
   const ref = useRef(null);
   const isInView = useInView(ref, { once: false, amount: 0.2 });
 

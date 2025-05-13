@@ -31,9 +31,13 @@ import {
   selectContentToDelete,
 } from "../../redux/slices/uiSlice";
 
+//----- Content Generation History Component -----//
+
 const ContentGenerationHistory = () => {
+  //----- Dispatch For Handling Redux Actions -----//
   const dispatch = useDispatch();
 
+  //----- Selectors For Handling Redux State -----//
   const isViewModalOpen = useSelector(selectViewContentModal);
   const isEditModalOpen = useSelector(selectEditContentModal);
   const isDeleteModalOpen = useSelector(selectDeleteContentModal);
@@ -41,8 +45,10 @@ const ContentGenerationHistory = () => {
   const editedContent = useSelector(selectEditedContent);
   const contentToDelete = useSelector(selectContentToDelete);
 
+  //----- Query Client For Handling Queries -----//
   const queryClient = useQueryClient();
 
+  //----- Query For Handling Content History -----//
   const {
     isLoading: isHistoryLoading,
     isError: isHistoryError,
@@ -53,11 +59,13 @@ const ContentGenerationHistory = () => {
     queryKey: ["contentHistory"],
   });
 
+  //----- Query For Handling User Profile -----//
   const { isLoading: isProfileLoading, data: profileData } = useQuery({
     queryFn: profileAPI,
     queryKey: ["profile"],
   });
 
+  //----- Mutation For Handling Content Deletion -----//
   const deleteMutation = useMutation({
     mutationFn: deleteContentAPI,
     onSuccess: () => {
@@ -68,6 +76,7 @@ const ContentGenerationHistory = () => {
     },
   });
 
+  //----- Mutation For Handling Content Update -----//
   const updateMutation = useMutation({
     mutationFn: updateContentAPI,
     onSuccess: () => {
@@ -77,22 +86,26 @@ const ContentGenerationHistory = () => {
     },
   });
 
+  //----- Handle View -----//
   const handleView = async (content) => {
     dispatch(setSelectedContent(content));
     dispatch(openModal("viewContent"));
   };
 
+  //----- Handle Edit -----//
   const handleEdit = (content) => {
     dispatch(setSelectedContent(content));
     dispatch(setEditedContent(content.content));
     dispatch(openModal("editContent"));
   };
 
+  //----- Handle Delete -----//
   const handleDelete = async (content) => {
     dispatch(setContentToDelete(content));
     dispatch(openModal("deleteContent"));
   };
 
+  //----- Handle Confirm Delete -----//
   const confirmDelete = async () => {
     try {
       await deleteMutation.mutateAsync(contentToDelete._id);
@@ -101,6 +114,7 @@ const ContentGenerationHistory = () => {
     }
   };
 
+  //----- Handle Update -----//
   const handleUpdate = async () => {
     try {
       await updateMutation.mutateAsync({
@@ -112,16 +126,19 @@ const ContentGenerationHistory = () => {
     }
   };
 
+  //----- Use Effect For Handling Reset Content State -----//
   React.useEffect(() => {
     return () => {
       dispatch(resetContentState());
     };
   }, [dispatch]);
 
+  //----- Render Loading -----//
   if (isHistoryLoading || isProfileLoading) {
     return <StatusMessage type="loading" message="Loading please wait..." />;
   }
 
+  //----- Render Error -----//
   if (isHistoryError) {
     return (
       <StatusMessage
@@ -133,6 +150,7 @@ const ContentGenerationHistory = () => {
     );
   }
 
+  //----- Render History Items -----//
   const historyItems = historyData?.history || profileData?.user?.history || [];
 
   return (

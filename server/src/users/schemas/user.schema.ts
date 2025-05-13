@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Schema as MongooseSchema } from "mongoose";
 
+//----- Subscription Type Enum -----//
 export enum SubscriptionType {
   FREE = "Free",
   BASIC = "Basic",
@@ -8,6 +9,7 @@ export enum SubscriptionType {
   TRIAL = "Trial",
 }
 
+//----- User Schema -----//
 @Schema({ timestamps: true })
 export class User extends Document {
   @Prop({ required: true })

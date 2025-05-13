@@ -5,7 +5,9 @@ import { useMutation } from "@tanstack/react-query";
 import { handleFreeSubscription } from "../../apis/stripePaymentAPI";
 import StatusMessage from "../Alert/StatusMessage";
 
+//----- Free Plan Signup Component -----//
 const FreePlanSignup = () => {
+  //----- Plan Details -----//
   const planDetails = {
     name: "Free",
     price: "$0.00/month",

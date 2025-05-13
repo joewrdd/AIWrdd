@@ -7,10 +7,12 @@ import { Payment, PaymentStatus } from "./schemas/payment.schema";
 import { User, SubscriptionType } from "../users/schemas/user.schema";
 import { UsersService } from "../users/users.service";
 
+//----- Payment Service For Handling Stripe Payments -----//
 @Injectable()
 export class PaymentService {
   private stripe: Stripe;
 
+  //----- Constructor For Initializing Stripe Service -----//
   constructor(
     private configService: ConfigService,
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
@@ -24,6 +26,7 @@ export class PaymentService {
     );
   }
 
+  //----- Create Checkout Session -----//
   async createCheckoutSession(data: any, user: User): Promise<any> {
     try {
       const { priceId } = data;
@@ -51,6 +54,7 @@ export class PaymentService {
     }
   }
 
+  //----- Handle Stripe Webhook -----//
   async handleWebhook(rawBody: Buffer, signature: string): Promise<any> {
     try {
       const webhookSecret = this.configService.get<string>(
@@ -72,6 +76,7 @@ export class PaymentService {
           `Webhook Signature Verification Failed: ${err.message}`
         );
       }
+      //----- Switch Case For Handling Different Stripe Events -----//
       switch (event.type) {
         case "checkout.session.completed":
           const checkoutSession = event.data.object as Stripe.Checkout.Session;
@@ -112,6 +117,7 @@ export class PaymentService {
     }
   }
 
+  //----- Handle Successful Payment -----//
   private async handleSuccessfulPayment(
     session: Stripe.Checkout.Session
   ): Promise<void> {
@@ -122,6 +128,7 @@ export class PaymentService {
       throw new BadRequestException("User Not Found...");
     }
 
+    //----- Create Payment Record -----//
     const payment = new this.paymentModel({
       amount: session.amount_total / 100,
       currency: session.currency,
@@ -140,6 +147,7 @@ export class PaymentService {
     const productId = subscription.items.data[0].price.product as string;
     const product = await this.stripe.products.retrieve(productId);
 
+    //----- Determine Subscription Type -----//
     let subscriptionType = SubscriptionType.BASIC;
     if (
       product.name.includes("Premium") ||
@@ -153,7 +161,7 @@ export class PaymentService {
     user.monthlyRequestCount =
       subscriptionType === SubscriptionType.PREMIUM ? 100 : 50;
 
-    // Calculate next billing date
+    //----- Calculate Next Billing Date -----//
     const nextBillingDate = new Date();
     nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
     user.nextBillingDate = nextBillingDate;
@@ -161,9 +169,11 @@ export class PaymentService {
     await user.save();
   }
 
+  //----- Handle Successful Payment Intent -----//
   private async handleSuccessfulPaymentIntent(
     paymentIntent: Stripe.PaymentIntent
   ): Promise<void> {
+    //----- Try Catch Block For Handling Errors -----//
     try {
       const userId = paymentIntent.metadata.userId;
       if (!userId) {
@@ -183,6 +193,7 @@ export class PaymentService {
         stripePaymentId: paymentIntent.id,
       });
 
+      //----- If Payment Record Does Not Exist, Create New Payment Record -----//
       if (!payment) {
         payment = new this.paymentModel({
           amount: paymentIntent.amount / 100,
@@ -198,6 +209,7 @@ export class PaymentService {
         await payment.save();
       }
 
+      //----- Determine Subscription Type -----//
       let subscriptionType: SubscriptionType;
       let monthlyRequestCount: number;
 
@@ -228,6 +240,7 @@ export class PaymentService {
     }
   }
 
+  //----- Activate Free Plan -----//
   async activateFreePlan(user: User): Promise<any> {
     try {
       user.subscription = SubscriptionType.FREE;
@@ -252,6 +265,7 @@ export class PaymentService {
     }
   }
 
+  //----- Create Payment Intent -----//
   async createPaymentIntent(paymentData: any, user: User): Promise<any> {
     try {
       const { amount, subscriptionPlan } = paymentData;
@@ -295,6 +309,7 @@ export class PaymentService {
     }
   }
 
+  //----- Verify Payment -----//
   async verifyPayment(paymentId: string, user: User): Promise<any> {
     try {
       const paymentIntent =
@@ -325,6 +340,7 @@ export class PaymentService {
     }
   }
 
+  //----- Update Subscription -----//
   async updateSubscription(paymentId: string, user: User): Promise<any> {
     try {
       const payment = await this.paymentModel.findOne({
@@ -353,7 +369,9 @@ export class PaymentService {
         }
       }
 
+      //----- Try Catch Block For Handling Errors -----//
       try {
+        //----- Retrieve Payment Intent -----//
         const paymentIntent =
           await this.stripe.paymentIntents.retrieve(paymentId);
 
@@ -389,14 +407,14 @@ export class PaymentService {
 
         return {
           status: "success",
-          message: "Subscription updated successfully",
+          message: "Subscription Updated Successfully!!",
           subscription: user.subscription,
           previousSubscription,
           monthlyRequestCount,
         };
       } catch (stripeError) {
         console.error(
-          `Error retrieving payment intent from Stripe: ${stripeError.message}`
+          `Error Retrieving Payment Intent From Stripe: ${stripeError.message}`
         );
 
         const subscriptionType = SubscriptionType.BASIC;
@@ -434,6 +452,7 @@ export class PaymentService {
     }
   }
 
+  //----- Get User Payments -----//
   async getUserPayments(userId: string): Promise<any> {
     try {
       const payments = await this.paymentModel
@@ -460,6 +479,7 @@ export class PaymentService {
     }
   }
 
+  //----- Fix User Subscription As A Backup For Stripe Webhook Failure -----//
   async fixUserSubscription(userId: string): Promise<any> {
     try {
       const user = await this.usersService.findById(userId);

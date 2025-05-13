@@ -3,8 +3,11 @@ import React from "react";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 
+//----- Free Trial Component -----//
 export default function FreeTrial() {
+  //----- Ref For Handling Free Trial Section -----//
   const ref = useRef(null);
+  //----- Check If Free Trial Section Is In View -----//
   const isInView = useInView(ref, { once: false, amount: 0.2 });
 
   return (

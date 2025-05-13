@@ -9,6 +9,7 @@ import {
 } from "../../redux/slices/uiSlice";
 import textLogo from "../../assets/WRDD.png";
 
+//----- Navigation For Public Navbar -----//
 const navigation = [
   { name: "Home", href: "/", current: true },
   { name: "Features", href: "/features", current: false },
@@ -16,12 +17,17 @@ const navigation = [
   { name: "Plans", href: "/plans", current: false },
 ];
 
+//----- Class Names For Public Navbar -----//
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
+//----- Public Navbar Component -----//
 export default function PublicNavbar() {
+  //----- Dispatch For Handling Redux Actions -----//
   const dispatch = useDispatch();
+
+  //----- Selector For Handling Mobile Menu Open -----//
   const mobileMenuOpen = useSelector(selectMobileMenuOpen);
 
   return (

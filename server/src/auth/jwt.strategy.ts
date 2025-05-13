@@ -7,6 +7,7 @@ import { Model } from "mongoose";
 import { InjectModel } from "@nestjs/mongoose";
 import { User } from "../users/schemas/user.schema";
 
+//----- JWT Strategy For Authentication -----//
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -24,6 +25,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
+  //----- Validate JWT Token -----//
   async validate(payload: any) {
     const user = await this.userModel.findById(payload.id).select("-password");
     if (!user) {

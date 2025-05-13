@@ -2,12 +2,14 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Schema as MongooseSchema } from "mongoose";
 import { User } from "../../users/schemas/user.schema";
 
+//----- Payment Status Enum -----//
 export enum PaymentStatus {
   PENDING = "pending",
   COMPLETED = "completed",
   FAILED = "failed",
 }
 
+//----- Payment Schema -----//
 @Schema({ timestamps: true })
 export class Payment extends Document {
   @Prop({ required: true })

@@ -1,7 +1,8 @@
 import axios from "axios";
 import config from "../config";
-
 const API_URL = config.API_URL;
+
+//----- Class For Handling Stripe Payment API -----
 
 //----- Create Stripe Checkout Session -----
 export const createCheckoutSession = async (priceId) => {
@@ -130,6 +131,7 @@ export const verifyPayment = async (paymentId) => {
   }
 };
 
+//----- Update Subscription -----
 const updateSubscription = async (paymentId) => {
   try {
     const response = await axios.post(

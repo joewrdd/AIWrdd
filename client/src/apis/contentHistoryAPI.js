@@ -1,6 +1,9 @@
 import axios from "axios";
 import config from "../config";
 
+//----- Class For Handling Content History API -----//
+
+//----- Get All Content History -----//
 export const getAllContentHistoryAPI = async () => {
   try {
     const response = await axios.get(`${config.API_URL}/api/history`, {
@@ -14,6 +17,7 @@ export const getAllContentHistoryAPI = async () => {
   }
 };
 
+//----- View Specific Content History -----//
 export const viewContentAPI = async (contentId) => {
   try {
     const response = await axios.get(
@@ -30,6 +34,7 @@ export const viewContentAPI = async (contentId) => {
   }
 };
 
+//----- Update Specific Content History -----//
 export const updateContentAPI = async ({ contentId, content }) => {
   try {
     const response = await axios.put(
@@ -47,6 +52,7 @@ export const updateContentAPI = async ({ contentId, content }) => {
   }
 };
 
+//----- Delete Specific Content History -----//
 export const deleteContentAPI = async (contentId) => {
   try {
     const response = await axios.delete(

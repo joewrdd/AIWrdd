@@ -6,8 +6,11 @@ import HomeFeatures from "./HomeFeatures";
 import FreeTrial from "./FreeTrial";
 import ai from "../../assets/ai.png";
 
+//----- Home Component -----//
 export default function Home() {
+  //----- Ref For Handling Home Section -----//
   const ref = useRef(null);
+  //----- Check If Home Section Is In View -----//
   const isInView = useInView(ref, { once: false, amount: 0.2 });
 
   return (

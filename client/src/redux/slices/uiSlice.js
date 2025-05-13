@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+//----- Initial State -----//
 const initialState = {
   modals: {
     viewContent: false,
@@ -12,6 +13,7 @@ const initialState = {
   mobileMenuOpen: false,
 };
 
+//----- UI Slice -----//
 export const uiSlice = createSlice({
   name: "ui",
   initialState,
@@ -48,6 +50,7 @@ export const uiSlice = createSlice({
   },
 });
 
+//----- UI Slice Actions -----//
 export const {
   openModal,
   closeModal,
@@ -59,6 +62,7 @@ export const {
   resetContentState,
 } = uiSlice.actions;
 
+//----- UI Slice Selectors -----//
 export const selectViewContentModal = (state) => state.ui.modals.viewContent;
 export const selectEditContentModal = (state) => state.ui.modals.editContent;
 export const selectDeleteContentModal = (state) =>
@@ -68,4 +72,5 @@ export const selectEditedContent = (state) => state.ui.editedContent;
 export const selectContentToDelete = (state) => state.ui.contentToDelete;
 export const selectMobileMenuOpen = (state) => state.ui.mobileMenuOpen;
 
+//----- UI Slice Reducer -----//
 export default uiSlice.reducer;

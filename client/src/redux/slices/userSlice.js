@@ -3,6 +3,7 @@ import axios from "axios";
 import config from "../../config";
 import { logoutAPI, profileAPI } from "../../apis/usersAPI";
 
+//----- Initial State -----//
 const initialState = {
   user: null,
   isAuthenticated: false,
@@ -12,6 +13,7 @@ const initialState = {
   effectiveSubscription: null,
 };
 
+//----- Fetch User Profile Async Thunk -----//
 export const fetchUserProfile = createAsyncThunk(
   "user/fetchProfile",
   async (_, { rejectWithValue }) => {
@@ -26,6 +28,7 @@ export const fetchUserProfile = createAsyncThunk(
   }
 );
 
+//----- Logout User Async Thunk -----//
 export const logoutUser = createAsyncThunk(
   "user/logout",
   async (_, { rejectWithValue }) => {
@@ -40,6 +43,7 @@ export const logoutUser = createAsyncThunk(
   }
 );
 
+//----- Fix Subscription Async Thunk -----//
 export const fixSubscription = createAsyncThunk(
   "user/fixSubscription",
   async (_, { rejectWithValue }) => {
@@ -57,6 +61,7 @@ export const fixSubscription = createAsyncThunk(
   }
 );
 
+//----- User Slice -----//
 const userSlice = createSlice({
   name: "user",
   initialState,
@@ -85,6 +90,7 @@ const userSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    //----- Update Effective Subscription -----//
     updateEffectiveSubscription: (state) => {
       if (!state.user) return;
 
@@ -130,6 +136,7 @@ const userSlice = createSlice({
         state.user = action.payload.user;
         state.isAuthenticated = !!action.payload.user;
 
+        //----- Update Effective Subscription -----//
         if (
           state.user &&
           state.user.payments &&
@@ -153,7 +160,7 @@ const userSlice = createSlice({
             if (subscription) {
               state.effectiveSubscription = subscription;
 
-              // Update credit allocation based on effective subscription
+              //----- Update Credit Allocation Based On Effective Subscription -----//
               if (
                 subscription === "Premium" &&
                 state.user.monthlyRequestCount < 100
@@ -202,6 +209,7 @@ const userSlice = createSlice({
   },
 });
 
+//----- User Slice Actions -----//
 export const {
   setUser,
   clearUser,
@@ -212,6 +220,7 @@ export const {
   updateEffectiveSubscription,
 } = userSlice.actions;
 
+//----- User Slice Selectors -----//
 export const selectUser = (state) => state.user.user;
 export const selectIsAuthenticated = (state) => state.user.isAuthenticated;
 export const selectUserLoading = (state) => state.user.loading;
@@ -227,7 +236,7 @@ export const selectCreditAllocation = (state) => {
   if (subscription === "Premium") return 100;
   if (subscription === "Basic") return 50;
   if (subscription === "Trial") return 25;
-  return 5;
+  return 0;
 };
 
 export const selectCurrentCycleUsedCredits = (state) => {
@@ -244,4 +253,5 @@ export const selectUsedCredits = (state) => {
   return state.user.user?.apiRequestCount || 0;
 };
 
+//----- User Slice Reducer -----//
 export default userSlice.reducer;

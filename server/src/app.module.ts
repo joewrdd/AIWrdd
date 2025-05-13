@@ -11,12 +11,14 @@ import { HistoryModule } from "./history/history.module";
 import { AuthModule } from "./auth/auth.module";
 import { TasksModule } from "./tasks/tasks.module";
 
+//----- App Module For Handling All Modules -----//
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ".env",
     }),
+    //----- Mongoose Module For Handling MongoDB Connection -----//
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -40,6 +42,7 @@ import { TasksModule } from "./tasks/tasks.module";
 
             return connection;
           },
+          //----- Connection Error Factory For Handling MongoDB Connection Errors -----//
           connectionErrorFactory: (error) => {
             console.error("❌ Failed to Connect to MongoDB:", error.message);
             console.log(
@@ -53,6 +56,7 @@ import { TasksModule } from "./tasks/tasks.module";
         };
       },
     }),
+    //----- Schedule Module For Handling Tasks -----//
     ScheduleModule.forRoot(),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, "..", "public"),

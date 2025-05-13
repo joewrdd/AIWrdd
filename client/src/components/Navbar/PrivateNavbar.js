@@ -12,13 +12,18 @@ const user = {
   name: "Joe Ward",
   email: "joewrdd@gmail.com",
 };
+
+//----- Navigation For Private Navbar -----//
 const navigation = [
   { name: "Home", href: "/", current: true },
   { name: "Dashboard", href: "/dashboard", current: true },
   { name: "Pricing", href: "/plans", current: true },
 ];
+
+//----- User Navigation For Private Navbar -----//
 const userNavigation = [{ name: "Sign out", href: "#" }];
 
+//----- Class Names For Private Navbar -----//
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }

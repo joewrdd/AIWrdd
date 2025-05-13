@@ -28,10 +28,14 @@ const options = {
     enabled: true,
   },
 };
+
+//----- Main React Root -----//
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
+//----- Main Query Client -----//
 const queryClient = new QueryClient();
 
+//----- Main React Render -----//
 root.render(
   <React.StrictMode>
     <Provider store={store}>

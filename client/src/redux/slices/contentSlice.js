@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { generateContentAPI } from "../../apis/chatAiAPI";
 import { updateCreditUsage } from "./userSlice";
 
+//----- Initial State -----//
 const initialState = {
   content: null,
   prompt: "",
@@ -12,6 +13,7 @@ const initialState = {
   error: null,
 };
 
+//----- Generate Content Async Thunk -----//
 export const generateContent = createAsyncThunk(
   "content/generate",
   async (promptData, { rejectWithValue, dispatch }) => {
@@ -29,6 +31,7 @@ export const generateContent = createAsyncThunk(
   }
 );
 
+//----- Content Slice -----//
 const contentSlice = createSlice({
   name: "content",
   initialState,
@@ -55,6 +58,7 @@ const contentSlice = createSlice({
       state.error = null;
     },
   },
+  //----- Extra Reducers -----//
   extraReducers: (builder) => {
     builder
       .addCase(generateContent.pending, (state) => {
@@ -76,6 +80,7 @@ const contentSlice = createSlice({
   },
 });
 
+//----- Content Slice Actions -----//
 export const {
   setPrompt,
   setTone,
@@ -85,6 +90,7 @@ export const {
   clearError,
 } = contentSlice.actions;
 
+//----- Content Slice Selectors -----//
 export const selectContent = (state) => state.content.content;
 export const selectPrompt = (state) => state.content.prompt;
 export const selectTone = (state) => state.content.tone;
@@ -93,4 +99,5 @@ export const selectContentStatus = (state) => state.content.status;
 export const selectContentLoading = (state) => state.content.loading;
 export const selectContentError = (state) => state.content.error;
 
+//----- Content Slice Reducer -----//
 export default contentSlice.reducer;

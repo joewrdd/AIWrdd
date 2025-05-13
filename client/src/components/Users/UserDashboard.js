@@ -33,15 +33,18 @@ import {
 
 const STATUS_MESSAGE_TIMEOUT = 4000;
 
+//----- User Dashboard Component -----//
 const Dashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  //----- Ref For Handling Profile Fetching -----//
   const profileFetchedRef = useRef(false);
   const paramsCleared = useRef(false);
   const autoFixAttemptedRef = useRef(false);
 
+  //----- Selectors For Handling Redux State -----//
   const user = useSelector(selectUser);
   const isLoading = useSelector(selectUserLoading);
   const error = useSelector(selectUserError);
@@ -57,17 +60,19 @@ const Dashboard = () => {
   const statusMessageVisible = useSelector(selectStatusMessageVisible);
   const refreshCompleted = useSelector(selectRefreshCompleted);
 
+  //----- Search Params For Handling URL Search Params -----//
   const searchParams = new URLSearchParams(location.search);
   const fromPayment = searchParams.get("payment") === "true";
   const forceRefresh = searchParams.get("forcerefresh") === "true";
 
-  // Update effective subscription when user changes
+  //----- Update Effective Subscription When User Changes -----//
   useEffect(() => {
     if (user && user.payments) {
       dispatch(updateEffectiveSubscription());
     }
   }, [user, dispatch]);
 
+  //----- Navigate To Dashboard When Payment Is Made -----//
   useEffect(() => {
     if ((fromPayment || forceRefresh) && !paramsCleared.current) {
       paramsCleared.current = true;
@@ -75,6 +80,7 @@ const Dashboard = () => {
     }
   }, [fromPayment, forceRefresh, navigate]);
 
+  //----- Hide Status Message When Fixing -----//
   useEffect(() => {
     let timeoutId;
     if (fixStatus && !isFixing && statusMessageVisible) {
@@ -90,6 +96,7 @@ const Dashboard = () => {
     };
   }, [fixStatus, isFixing, statusMessageVisible, dispatch]);
 
+  //----- Fetch User Profile When Component Mounts -----//
   useEffect(() => {
     if (!profileFetchedRef.current) {
       profileFetchedRef.current = true;
@@ -97,6 +104,7 @@ const Dashboard = () => {
     }
   }, [dispatch]);
 
+  //----- Fetch User Profile When Payment Is Made -----//
   useEffect(() => {
     if ((fromPayment || forceRefresh) && !refreshCompleted && user) {
       dispatch(setRefreshCompleted(true));
@@ -122,6 +130,7 @@ const Dashboard = () => {
     }
   }, [dispatch, fromPayment, forceRefresh, refreshCompleted, user]);
 
+  //----- Auto Fix Subscription When User Is Loaded -----//
   useEffect(() => {
     const autoFixSubscription = async (userData) => {
       if (autoFixAttemptedRef.current) return;
@@ -172,10 +181,11 @@ const Dashboard = () => {
       }
     };
 
+    //----- Auto Fix Subscription When User Is Loaded -----//
     if (user && !isFixing && !fixStatus) {
       autoFixSubscription(user).catch((err) => {
-        console.error("Error in autoFixSubscription:", err);
-        dispatch(setLocalError(err.message || "Failed to fix subscription"));
+        console.error("Error In autoFixSubscription:", err);
+        dispatch(setLocalError(err.message || "Failed To Fix Subscription"));
       });
     }
 
@@ -186,10 +196,12 @@ const Dashboard = () => {
     };
   }, [user, isFixing, fixStatus, dispatch, fromPayment]);
 
+  //----- Render Loading -----//
   if (isLoading) {
     return <StatusMessage type="loading" message="Loading please wait..." />;
   }
 
+  //----- Render Error -----//
   if (error || localError) {
     return (
       <StatusMessage
@@ -199,17 +211,23 @@ const Dashboard = () => {
     );
   }
 
+  //----- Render No User -----//
   if (!user) {
     return <StatusMessage type="error" message="No user data available" />;
   }
 
+  //----- Just Subscribed -----//
   const justSubscribed = fromPayment && currentSubscription !== "Trial";
+
+  //----- Has Active Subscription -----//
   const hasActiveSubscription =
     currentSubscription !== "Trial" && !user.trialActive;
 
+  //----- Payments -----//
   const payments = user.payments || [];
   const hasPayments = payments.length > 0;
 
+  //----- Render Dashboard -----//
   return (
     <div className="mx-auto p-4 bg-gray-900 w-screen">
       {justSubscribed && statusMessageVisible && (

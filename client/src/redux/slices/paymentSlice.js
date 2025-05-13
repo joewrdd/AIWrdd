@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+//----- Initial State -----//
 const initialState = {
   paymentStatus: "idle",
   errorMessage: null,
@@ -11,6 +12,7 @@ const initialState = {
   isLoading: false,
 };
 
+//----- Payment Slice -----//
 export const paymentSlice = createSlice({
   name: "payment",
   initialState,
@@ -54,6 +56,7 @@ export const paymentSlice = createSlice({
   },
 });
 
+//----- Payment Slice Actions -----//
 export const {
   setPaymentStatus,
   setErrorMessage,
@@ -67,6 +70,7 @@ export const {
   resetPaymentState,
 } = paymentSlice.actions;
 
+//----- Payment Slice Selectors -----//
 export const selectPaymentStatus = (state) => state.payment.paymentStatus;
 export const selectErrorMessage = (state) => state.payment.errorMessage;
 export const selectRetryCount = (state) => state.payment.retryCount;
@@ -76,4 +80,5 @@ export const selectSuccessMessage = (state) => state.payment.successMessage;
 export const selectClientSecret = (state) => state.payment.clientSecret;
 export const selectIsLoading = (state) => state.payment.isLoading;
 
+//----- Payment Slice Reducer -----//
 export default paymentSlice.reducer;

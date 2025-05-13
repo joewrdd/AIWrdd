@@ -13,6 +13,7 @@ import { User, SubscriptionType } from "./schemas/user.schema";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { LoginUserDto } from "./dto/login-user.dto";
 
+//----- Users Service For Handling User Routes -----//
 @Injectable()
 export class UsersService {
   constructor(
@@ -20,6 +21,7 @@ export class UsersService {
     private jwtService: JwtService
   ) {}
 
+  //----- Register User -----//
   async register(
     createUserDto: CreateUserDto
   ): Promise<{ status: boolean; message: string; user: any }> {
@@ -38,6 +40,7 @@ export class UsersService {
       );
     }
 
+    //----- Hash Password -----//
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -63,6 +66,7 @@ export class UsersService {
     };
   }
 
+  //----- Login User -----//
   async login(loginUserDto: LoginUserDto): Promise<any> {
     const { email, password } = loginUserDto;
 
@@ -92,10 +96,12 @@ export class UsersService {
     };
   }
 
+  //----- Find User By ID -----//
   async findById(id: string): Promise<User> {
     return this.userModel.findById(id).select("-password");
   }
 
+  //----- Get User Profile -----//
   async getUserProfile(userId: string): Promise<any> {
     const user = await this.userModel
       .findById(userId)
@@ -113,6 +119,7 @@ export class UsersService {
     };
   }
 
+  //----- Update Trial Users -----//
   async updateTrialUsers() {
     const presentDate = new Date();
     await this.userModel.updateMany(
@@ -128,6 +135,7 @@ export class UsersService {
     );
   }
 
+  //----- Reset Monthly Requests -----//
   async resetMonthlyRequests(subscriptionType: SubscriptionType) {
     const presentDate = new Date();
     await this.userModel.updateMany(

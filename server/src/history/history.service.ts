@@ -7,6 +7,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { ContentHistory } from "./schemas/content-history.schema";
 
+//----- History Service For Managing User History -----//
 @Injectable()
 export class HistoryService {
   constructor(
@@ -14,6 +15,7 @@ export class HistoryService {
     private contentHistoryModel: Model<ContentHistory>
   ) {}
 
+  //----- Get User History -----//
   async getUserHistory(userId: string): Promise<any> {
     const history = await this.contentHistoryModel
       .find({ user: userId })
@@ -25,6 +27,7 @@ export class HistoryService {
     };
   }
 
+  //----- Get Specific History Item -----//
   async getHistoryItem(historyId: string, userId: string): Promise<any> {
     const content = await this.contentHistoryModel.findOne({
       _id: historyId,
@@ -32,7 +35,7 @@ export class HistoryService {
     });
 
     if (!content) {
-      throw new NotFoundException("Content not found");
+      throw new NotFoundException("Content Not Found.");
     }
 
     return {
@@ -41,6 +44,7 @@ export class HistoryService {
     };
   }
 
+  //----- Update Specific History Item -----//
   async updateHistoryItem(
     historyId: string,
     newContent: string,
@@ -52,13 +56,12 @@ export class HistoryService {
     });
 
     if (!content) {
-      throw new NotFoundException("Content not found");
+      throw new NotFoundException("Content Not Found.");
     }
 
-    // Ensure the user owns this content
     if (content.user.toString() !== userId) {
       throw new ForbiddenException(
-        "You are not authorized to update this content"
+        "You Are Not Authorized To Update This Content."
       );
     }
 
@@ -67,11 +70,12 @@ export class HistoryService {
 
     return {
       status: "success",
-      message: "Content updated successfully",
+      message: "Content Updated Successfully!!",
       content,
     };
   }
 
+  //----- Delete Specific History Item -----//
   async deleteHistoryItem(historyId: string, userId: string): Promise<any> {
     const content = await this.contentHistoryModel.findOne({
       _id: historyId,
@@ -79,7 +83,7 @@ export class HistoryService {
     });
 
     if (!content) {
-      throw new NotFoundException("Content not found");
+      throw new NotFoundException("Content Not Found.");
     }
 
     await this.contentHistoryModel.deleteOne({
@@ -89,7 +93,7 @@ export class HistoryService {
 
     return {
       status: "success",
-      message: "Content deleted successfully",
+      message: "Content Deleted Successfully!!",
     };
   }
 }

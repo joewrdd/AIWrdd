@@ -21,6 +21,7 @@ import {
 import { FaSpinner } from "react-icons/fa";
 import { createStripePaymentIntent } from "../../apis/stripePaymentAPI";
 
+//----- Checkout Form Component -----//
 const CheckoutForm = () => {
   const dispatch = useDispatch();
   const stripe = useStripe();
@@ -29,6 +30,7 @@ const CheckoutForm = () => {
   const { plan } = useParams();
   const location = useLocation();
 
+  //----- Selectors For Handling Redux State -----//
   const paymentStatus = useSelector(selectPaymentStatus);
   const errorMessage = useSelector(selectErrorMessage);
   const clientSecret = useSelector(selectClientSecret);
@@ -37,10 +39,12 @@ const CheckoutForm = () => {
   const searchParams = new URLSearchParams(location.search);
   const amount = searchParams.get("amount");
 
+  //----- Use Effect For Handling User Profile -----//
   useEffect(() => {
     dispatch(fetchUserProfile());
     dispatch(resetPaymentState());
 
+    //----- Initialize Payment -----//
     const initiatePayment = async () => {
       try {
         dispatch(setIsLoading(true));
@@ -49,13 +53,14 @@ const CheckoutForm = () => {
           subscriptionPlan: plan,
         };
 
+        //----- Create Stripe Payment Intent -----//
         const response = await createStripePaymentIntent(paymentData);
         dispatch(setClientSecret(response.clientSecret));
       } catch (error) {
-        console.error("Error creating payment intent:", error);
+        console.error("Error Creating Payment Intent:", error);
         dispatch(
           setErrorMessage(
-            error.response?.data?.message || "Failed to initialize payment."
+            error.response?.data?.message || "Failed To Initialize Payment."
           )
         );
         dispatch(setPaymentStatus("error"));
@@ -66,11 +71,13 @@ const CheckoutForm = () => {
 
     initiatePayment();
 
+    //----- Reset Payment State -----//
     return () => {
       dispatch(resetPaymentState());
     };
   }, [dispatch, amount, plan]);
 
+  //----- Handle Submit -----//
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -80,15 +87,18 @@ const CheckoutForm = () => {
 
     dispatch(setPaymentStatus("processing"));
 
+    //----- Submit Payment -----//
     try {
       const { error: submitError } = await elements.submit();
 
+      //----- Handle Submit Error -----//
       if (submitError) {
         dispatch(setErrorMessage(submitError.message));
         dispatch(setPaymentStatus("error"));
         return;
       }
 
+      //----- Confirm Payment -----//
       const result = await stripe.confirmPayment({
         elements,
         clientSecret,
@@ -102,18 +112,20 @@ const CheckoutForm = () => {
         dispatch(setErrorMessage(result.error.message));
         dispatch(setPaymentStatus("error"));
       } else {
+        //----- Set Payment Status -----//
         dispatch(setPaymentStatus("succeeded"));
         navigate(`/success?session_id=${result.paymentIntent.id}`);
       }
     } catch (error) {
-      console.error("Payment error:", error);
+      console.error("Payment Error:", error);
       dispatch(
-        setErrorMessage(error.message || "An unexpected error occurred.")
+        setErrorMessage(error.message || "An Unexpected Error Occurred.")
       );
       dispatch(setPaymentStatus("error"));
     }
   };
 
+  //----- Return Checkout Form -----//
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">

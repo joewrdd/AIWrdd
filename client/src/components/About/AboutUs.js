@@ -8,6 +8,7 @@ import {
   CalendarIcon,
 } from "@heroicons/react/20/solid";
 
+//----- Cards For About Us Section -----//
 const cards = [
   {
     name: "Innovative Solutions",
@@ -35,7 +36,9 @@ const cards = [
   },
 ];
 
+//----- About Us Component -----//
 export default function AboutUs() {
+  //----- Ref For Handling About Us Section -----//
   const ref = useRef(null);
   const isInView = useInView(ref, { once: false, amount: 0.2 });
 

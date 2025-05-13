@@ -17,6 +17,7 @@ import PrivateNavbar from "./components/Navbar/PrivateNavbar";
 import { useAuth } from "./auth/AuthContext";
 import AuthRoute from "./components/AuthRoute/AuthRoute";
 
+//----- Main App Component -----//
 export default function App() {
   const { isAuthenticated } = useAuth();
 

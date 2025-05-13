@@ -34,11 +34,16 @@ import {
   selectRemainingCredits,
 } from "../../redux/slices/userSlice";
 
+//----- Voice Content Generator Component -----//
 const VoiceContentGenerator = () => {
+  //----- Dispatch For Handling Redux Actions -----//
   const dispatch = useDispatch();
+
+  //----- Ref For Handling Profile Fetch -----//
   const profileFetchedRef = useRef(false);
   const recognitionRef = useRef(null);
 
+  //----- Selectors For Handling Redux State -----//
   const transcript = useSelector(selectTranscript);
   const isListening = useSelector(selectIsListening);
   const speechSupported = useSelector(selectSpeechSupported);
@@ -55,6 +60,7 @@ const VoiceContentGenerator = () => {
   const creditAllocation = useSelector(selectCreditAllocation);
   const remainingCredits = useSelector(selectRemainingCredits);
 
+  //----- Use Effect For Handling Speech Recognition -----//
   useEffect(() => {
     if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
       dispatch(setSpeechSupported(false));
@@ -66,6 +72,7 @@ const VoiceContentGenerator = () => {
       return;
     }
 
+    //----- Initialize Speech Recognition -----//
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognition();
@@ -73,6 +80,7 @@ const VoiceContentGenerator = () => {
     recognitionRef.current.interimResults = true;
     recognitionRef.current.lang = "en-US";
 
+    //----- Handle Speech Recognition Results -----//
     recognitionRef.current.onresult = (event) => {
       const current = event.resultIndex;
       if (event.results[current].isFinal) {
@@ -81,12 +89,14 @@ const VoiceContentGenerator = () => {
       }
     };
 
+    //----- Handle Speech Recognition Errors -----//
     recognitionRef.current.onerror = (event) => {
-      console.error("Speech recognition error", event.error);
-      dispatch(setVoiceError(`Error: ${event.error}. Please try again.`));
+      console.error("Speech Recognition Error!", event.error);
+      dispatch(setVoiceError(`Error: ${event.error}. Please Try Again.`));
       dispatch(setIsListening(false));
     };
 
+    //----- Cleanup Speech Recognition -----//
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
@@ -94,6 +104,7 @@ const VoiceContentGenerator = () => {
     };
   }, [dispatch]);
 
+  //----- Use Effect For Handling User Profile -----//
   useEffect(() => {
     if (!profileFetchedRef.current && (!user || !user.username)) {
       profileFetchedRef.current = true;
@@ -105,6 +116,7 @@ const VoiceContentGenerator = () => {
     };
   }, [user, dispatch]);
 
+  //----- Toggle Listening -----//
   const toggleListening = () => {
     if (!speechSupported) return;
 
@@ -118,38 +130,44 @@ const VoiceContentGenerator = () => {
     }
   };
 
+  //----- Handle Clear Transcript -----//
   const handleClearTranscript = () => {
     dispatch(clearTranscript());
   };
 
+  //----- Handle Generate Content -----//
   const handleGenerateContent = () => {
     if (!transcript.trim()) {
       dispatch(
-        setVoiceError("Please record some speech before generating content.")
+        setVoiceError("Please Record Some Speech Before Generating Content.")
       );
       return;
     }
 
+    //----- Generate Content -----//
     dispatch(
       generateContent(
-        `Generate content based on the following transcript: ${transcript}`
+        `Generate Content Based On The Following Transcript: ${transcript}`
       )
     );
   };
 
+  //----- Handle Transcript Change -----//
   const handleTranscriptChange = (e) => {
     dispatch(setTranscript(e.target.value));
   };
 
+  //----- Loading States -----//
   if (profileLoading) {
-    return <StatusMessage type="loading" message="Loading please wait..." />;
+    return <StatusMessage type="loading" message="Loading Please Wait..." />;
   }
 
+  //----- Error States -----//
   if (profileError) {
     return (
       <StatusMessage
         type="error"
-        message="Failed to load user profile. Please try again later."
+        message="Failed To Load User Profile. Please Try Again Later."
       />
     );
   }

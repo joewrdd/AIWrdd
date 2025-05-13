@@ -15,6 +15,7 @@ const validationSchema = Yup.object({
   password: Yup.string().required("Password Is Required"),
 });
 
+//----- Login Component -----
 const Login = () => {
   const { isAuthenticated, login } = useAuth();
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ const Login = () => {
     },
   });
 
-  //Handling Logging In
+  //----- Handling Logging In -----
   useEffect(() => {
     if (mutation.isSuccess) {
       login();

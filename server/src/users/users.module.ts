@@ -6,7 +6,9 @@ import { UsersController } from "./users.controller";
 import { UsersService } from "./users.service";
 import { User, UserSchema } from "./schemas/user.schema";
 import { AuthModule } from "../auth/auth.module";
+import { PaymentModule } from "../payment/payment.module";
 
+//----- Users Module For Handling User Routes -----//
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
